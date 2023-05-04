@@ -6,3 +6,4 @@ dataset/
 .profile
 .viminfo
 .wget-hsts
+.gitconfig
