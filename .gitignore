@@ -1,8 +1,7 @@
-.cache
-.local
-.vscode-server
-dataset/
-.profile
-.viminfo
-.wget-hsts
-.gitconfig
+*
+!code/
+!code/*
+!custom/
+!custom/*
+!module/
+!module/*
