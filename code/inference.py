@@ -138,7 +138,7 @@ def main(CFG):
 if __name__ == '__main__':
   seed_everything()
 
-  with open('./../module/config.yaml') as f:
+  with open('/opt/ml/module') as f:
     CFG = yaml.safe_load(f)
 
   main(CFG)
