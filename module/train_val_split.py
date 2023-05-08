@@ -19,8 +19,7 @@ def train_val_split(ratio: float):
     for item in tqdm(lbl_dict.items(), desc='train_validation_split', total=len(lbl_dict)):
         sub_dataset = train[train['label'] == item[0]]
 
-        train_data, validation_data = train_test_split(
-            sub_dataset, test_size=ratio)
+        train_data, validation_data = train_test_split(sub_dataset, test_size=ratio, random_state=14)
 
         train_dataset.append(train_data)
         validation_dataset.append(validation_data)

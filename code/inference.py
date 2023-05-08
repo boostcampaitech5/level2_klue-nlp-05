@@ -19,7 +19,7 @@ from custom.CustomDataCollator import *
 from module.seed_everything import seed_everything
 from module.add_token import add_token
 
-def inference(model, tokenized_sent, device):
+def inference(model, tokenized_sent, device, model_type):
   """
     test dataset을 DataLoader로 만들어 준 후,
     batch_size로 나눠 model이 예측 합니다.
@@ -30,11 +30,21 @@ def inference(model, tokenized_sent, device):
   output_prob = []
   for i, data in enumerate(tqdm(dataloader)):
     with torch.no_grad():
-      outputs = model(
+      if model_type == 'entity_special':
+        outputs = model(
           input_ids=data['input_ids'].to(device),
           attention_mask=data['attention_mask'].to(device),
-          token_type_ids=data['token_type_ids'].to(device)
+          token_type_ids=data['token_type_ids'].to(device),
+          subject_entity=data['subject_entity'],
+          object_entity=data['object_entity'],
           )
+      else:
+        outputs = model(
+            input_ids=data['input_ids'].to(device),
+            attention_mask=data['attention_mask'].to(device),
+            token_type_ids=data['token_type_ids'].to(device)
+            )
+
     logits = outputs[0]
     prob = F.softmax(logits, dim=-1).detach().cpu().numpy()
     logits = logits.detach().cpu().numpy()
@@ -42,9 +52,8 @@ def inference(model, tokenized_sent, device):
 
     output_pred.append(result)
     output_prob.append(prob)
-  
-  return np.concatenate(output_pred).tolist(), np.concatenate(output_prob, axis=0).tolist()
 
+  return np.concatenate(output_pred).tolist(), np.concatenate(output_prob, axis=0).tolist()
 def num_to_label(label):
   """
     숫자로 되어 있던 class를 원본 문자열 라벨로 변환 합니다.
@@ -63,7 +72,7 @@ def load_test_dataset(dataset_dir, tokenizer, model_type):
     tokenizing 합니다.
   """
   if model_type == 'base':
-    test_dataset = load_data(dataset_dir)
+    test_dataset = load_data(dataset_dir, model_type)
     test_label = list(map(int,test_dataset['label'].values))
     # tokenizing dataset
     tokenized_test = tokenized_dataset(test_dataset, tokenizer)
@@ -101,7 +110,7 @@ def main(CFG):
     
     model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME)
     
-    test_id, test_dataset, test_label = load_test_dataset(test_dataset_dir, tokenizer)
+    test_id, test_dataset, test_label = load_test_dataset(test_dataset_dir, tokenizer, CFG['MODEL_TYPE'])
     Re_test_dataset = RE_Dataset(test_dataset ,test_label)
     
   elif CFG['MODEL_TYPE'] == 'entity_special':       
@@ -109,7 +118,7 @@ def main(CFG):
     state_dict = torch.load(f'{MODEL_NAME}/pytorch_model.bin')
     model.load_state_dict(state_dict)
     
-    test_id, test_dataset, test_label, entity_type = load_test_dataset(test_dataset_dir, tokenizer)
+    test_id, test_dataset, test_label, entity_type = load_test_dataset(test_dataset_dir, tokenizer, CFG['MODEL_TYPE'])
     Re_test_dataset = RE_special_Dataset(test_dataset ,test_label, entity_type)
   
   elif CFG['MODEL_TYPE'] == 'entity_punct':
@@ -117,13 +126,13 @@ def main(CFG):
     state_dict = torch.load(f'{MODEL_NAME}/pytorch_model.bin')
     model.load_state_dict(state_dict)
     
-    test_id, test_dataset, test_label = load_test_dataset(test_dataset_dir, tokenizer)
+    test_id, test_dataset, test_label = load_test_dataset(test_dataset_dir, tokenizer, CFG['MODEL_TYPE'])
     Re_test_dataset = RE_Dataset(test_dataset ,test_label)
 
   model.to(device)
 
   ## predict answer
-  pred_answer, output_prob = inference(model, Re_test_dataset, device) # model에서 class 추론
+  pred_answer, output_prob = inference(model, Re_test_dataset, device, CFG['MODEL_TYPE']) # model에서 class 추론
   pred_answer = num_to_label(pred_answer) # 숫자로 된 class를 원래 문자열 라벨로 변환.
   
   ## make csv file with predicted answer
@@ -138,7 +147,7 @@ def main(CFG):
 if __name__ == '__main__':
   seed_everything()
 
-  with open('/opt/ml/module') as f:
+  with open('/opt/ml/module/config.yaml') as f:
     CFG = yaml.safe_load(f)
 
   main(CFG)
