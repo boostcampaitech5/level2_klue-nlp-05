@@ -1,7 +1,6 @@
 .cache
 .local
 .vscode-server
-code/
 dataset/
 .profile
 .viminfo
