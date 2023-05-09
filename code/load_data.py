@@ -172,7 +172,7 @@ def special_tokenized_dataset(dataset, tokenizer):
   tokenized_sentences = tokenizer(
     list(dataset['sentence']),
     return_tensors="pt",
-    padding=True,
+    padding='max_length',
     truncation=True,
     max_length=256,
     add_special_tokens=True,
