@@ -35,8 +35,8 @@ def inference(model, tokenized_sent, device, model_type):
           input_ids=data['input_ids'].to(device),
           attention_mask=data['attention_mask'].to(device),
           token_type_ids=data['token_type_ids'].to(device),
-          subject_entity=data['subject_entity'],
-          object_entity=data['object_entity'],
+          subject_type=data['subject_type'],
+          object_type=data['object_type'],
           )
       else:
         outputs = model(
@@ -103,7 +103,7 @@ def main(CFG):
   tokenizer = add_token(tokenizer, CFG['MODEL_TYPE'])
   MODEL_NAME = CFG['MODEL_SAVE_DIR']
   model_config = AutoConfig.from_pretrained(MODEL_NAME)
-  test_dataset_dir = CFG['TEST_PATH']
+  test_dataset_dir = '/opt/ml/dataset/test/test_data.csv' # CFG['TEST_PATH']
 
   if CFG['MODEL_TYPE'] == 'base':
     tokenizer = AutoTokenizer.from_pretrained(Tokenizer_NAME)
