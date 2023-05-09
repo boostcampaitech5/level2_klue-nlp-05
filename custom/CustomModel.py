@@ -1,10 +1,10 @@
-from transformers import AutoModel
+from transformers import AutoModel, BertPreTrainedModel
 import torch
 from copy import deepcopy
 
-class SepecialEntityBERT(torch.nn.Module):
+class SepecialEntityBERT(BertPreTrainedModel):
     def __init__(self, model_name, config, tokenizer):
-        super().__init__()
+        super().__init__(config)
         
         self.model = AutoModel.from_pretrained(model_name)
         self.model.resize_token_embeddings(len(tokenizer))
@@ -63,7 +63,7 @@ class SepecialEntityBERT(torch.nn.Module):
         
         outputs = (logits,) + outputs[2:]
         
-        if labels is not None:
+        if labels is not None: # 실제로 inference에서 label은 None이 아니라 100이지만 그냥 return 할 때, 필요하므로 냅두었다.
             loss_fun = torch.nn.CrossEntropyLoss()
             loss = loss_fun(logits.view(-1, self.config.num_labels), labels.view(-1))
             
@@ -71,9 +71,9 @@ class SepecialEntityBERT(torch.nn.Module):
         
         return outputs # (loss), logits, (hidden_states), (attentions)                
         
-class SepecialPunctBERT(torch.nn.Module):
+class SepecialPunctBERT(BertPreTrainedModel):
     def __init__(self, model_name, config, tokenizer):
-        super().__init__()
+        super().__init__(config)
         
         self.model = AutoModel.from_pretrained(model_name)
         self.model.resize_token_embeddings(len(tokenizer))
