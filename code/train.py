@@ -18,7 +18,7 @@ from custom.CustomDataCollator import *
 
 from module.seed_everything import seed_everything
 from module.train_val_split import train_val_split
-from module.add_token import add_token
+from module.add_token import add_token, add_token_ver2
 
 def klue_re_micro_f1(preds, labels):
     """KLUE-RE micro f1 (except no_relation)"""
@@ -81,7 +81,8 @@ def train():
 
   MODEL_NAME = CFG['MODEL_NAME']
   tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-  tokenizer = add_token(tokenizer, CFG['MODEL_TYPE'])
+  if CFG['MODEL_TYPE'] !='cls_entity_special' :
+    tokenizer = add_token(tokenizer, CFG['MODEL_TYPE'])
 
   if CFG['RATIO'] == 0.0:
     train_dataset = load_data(CFG['TRAIN_PATH'], CFG['MODEL_TYPE'])
@@ -135,6 +136,18 @@ def train():
     model = SepecialPunctBERT(MODEL_NAME, config=model_config, tokenizer=tokenizer)
 
     data_collator = DataCollatorWithPadding(tokenizer)
+
+  elif CFG['MODEL_TYPE'] =='cls_entity_special' :
+    '''해야할 것 : tokenizer에 specail token 추가하기. soure를 special 토큰으로 넣기'''
+    tokenizer = add_token_ver2(tokenizer)
+    tokenized_train, entity_type_train = special_tokenized_dataset(train_dataset, tokenizer)
+    tokenized_dev, entity_type_dev = special_tokenized_dataset(dev_dataset, tokenizer)
+
+    RE_train_dataset = RE_Dataset(tokenized_train, train_label)
+    RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
+
+    model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, config=model_config)
+    model.resize_token_embeddings(len(tokenizer))
 
   print(model.config)
   model.parameters
