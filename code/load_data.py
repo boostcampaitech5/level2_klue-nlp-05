@@ -81,6 +81,34 @@ def special_preprocessing_dataset(dataset):
   out_dataset = pd.DataFrame({'id':dataset['id'], 'sentence':sentences, 'label':dataset['label'], 'subject_type':subject_type, 'object_type':object_type})
   return out_dataset 
 
+def cls_special_preprocessing_dataset(dataset) :
+  '''목표 : input의 sentence의 형태를 바꿔주어야한다.'''
+  sentences = []
+  subject_type = []
+  object_type = []
+
+  for subj_entity, obj_entity, sentence in zip(dataset['subject_entity'], dataset['object_entity'], dataset['sentence']):
+    subj_entity = eval(subj_entity)
+    obj_entity = eval(obj_entity)
+
+    subj_type, obj_type = subj_entity['type'], obj_entity['type']
+    subject_type.append(subj_type)
+    object_type.append(obj_type)
+    subj_idx , obj_idx = subj_entity['start_idx'], obj_entity['start_idx']
+
+    if sub_idx < obj_idx:
+      sentence = (sentence[:subj_idx] + '[SUBJ]' + subj_type + sentence[subj_idx:obj_idx] + '[OBJ]'
+                  + obj_type + sentence[obj_idx:]
+      sentence = (sentence[:obj_idx] + '[OBJ]' + obj_type + sentence[obj_idx:subj_idx] + '[SUBJ]'
+                  + subj_type + sentence[subj_idx:]
+    else:
+      sentence = (sentence[:obj_idx] + '[OBJ]' + obj_type + sentence[obj_idx:subj_idx] + '[SUBJ]'
+                  + subj_type + sentence[subj_idx:]
+    setences.append(sentence)
+
+output_dataset = pd.DataFrame({'id':dataset['id'], 'sentence':sentences, 'label':dataset['label'], 'subject_type':subject_type, 'object_type':object_type})
+return output_dataset
+
 def punct_preprocessing_dataset(dataset):
   sentences = []
   
@@ -115,6 +143,8 @@ def load_data(dataset_dir, model_type):
     dataset = special_preprocessing_dataset(pd_dataset)
   elif model_type == 'entity_punct':
     dataset = punct_preprocessing_dataset(pd_dataset)
+  elif model_type == 'cls_entity_special':
+    dadtaset = cls_special_preprocessing_dataset(pd_dataset)
   else:
     dataset = preprocessing_dataset(pd_dataset)
 
