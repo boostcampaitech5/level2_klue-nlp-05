@@ -43,6 +43,8 @@ def preprocessing_dataset(dataset):
   for sub_entity, obj_entity in zip(dataset['subject_entity'], dataset['object_entity']):
     sub_word = eval(sub_entity)['word']
     obj_word = eval(obj_entity)['word']
+    sub_word = f'\' {sub_word} \''
+    obj_word = f'\' {obj_word} \''
 
     subject_words.append(sub_word)
     object_words.append(obj_word)
