@@ -64,6 +64,7 @@ def binary_to_label(label, prob):
   for v, p in zip(label, prob):
       if v == 0:
           origin_label.append('no_relation')
+          p += [0.0 for _ in range(28)]
           output_prob.append(p)
       else:
           origin_label.append(100)
@@ -80,6 +81,7 @@ def num_to_label(label, prob, pred_answer, output_prob):
   for i, (v, p, n) in enumerate(zip(label, prob, pred_answer)):
     if n == 100:
       pred_answer[i] = dict_num_to_label[v]
+      p = [0.0] + p
       output_prob[i] = p
 
   return pred_answer, output_prob
@@ -121,7 +123,6 @@ def main(CFG):
   tokenizer = add_token(tokenizer, CFG['MODEL_TYPE'])
   MODEL_NAME = CFG['MODEL_SAVE_DIR']
   binary_model_config = AutoConfig.from_pretrained(MODEL_NAME+'/binary_config.json')
-  binary_model_config.num_labels=2
   remain_model_config = AutoConfig.from_pretrained(MODEL_NAME+'/remain_config.json')
   test_dataset_dir = '/opt/ml/dataset/test/test_data.csv' # CFG['TEST_PATH']
 
