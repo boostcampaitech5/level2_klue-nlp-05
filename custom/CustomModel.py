@@ -1,4 +1,4 @@
-from transformers import AutoModel, BertPreTrainedModel
+from transformers import AutoModel, BertPreTrainedModel, AutoModelForSequenceClassification
 import torch
 from copy import deepcopy
 
@@ -126,3 +126,59 @@ class SepecialPunctBERT(BertPreTrainedModel):
             outputs = (loss,) + outputs
         
         return outputs # (loss), logits, (hidden_states), (attentions)
+
+class CLS_SpecialEntityBERT(BertPreTrainedModel) :
+    def __init__(self, model_name, config, tokenizer):
+        super().__init__(config)
+
+        self.model = AutoModel.from_pretrained(model_name, output_hidden_states=True)
+        self.model.resize_token_embeddings(len(tokenizer))
+        
+        self.tokenizer = tokenizer
+        self.config = config
+
+        # special entity type 에 맞는 special token의 id에 대한 dictionary
+        special_tokens = ['[SUBJ]' , '[OBJ]' , '[PER]' , '[ORG]', '[DAT]' , '[LOC]' , '[POH]' , '[NOH]']
+        subj = '[SUBJ]'
+        obj = '[OBJ]'
+        
+        token_ids = tokenizer.convert_tokens_to_ids(special_tokens)
+        
+        # 이 classifier는 각 entity special token 마다 적용된다.
+        self.pool_special_linear_block = nn.Sequential(
+                nn.Linear(
+                    5 * self.model.config.hidden_size, 128
+                ),  # 5 for 1 [CLS], 2 [SUBJ], 2 [OBJ]
+                nn.ReLU(),
+                nn.Dropout(),
+                nn.Linear(128, 30),
+            )
+    
+    def forward(self, x) :
+        batch_size = len(x)
+        
+        output = self.model(**x, output_hidden_states=True)
+        before_classification = []
+        
+        for i in range(batch_size) :
+            ''' 마지막에 [subj], [obj] 토큰의 hidden state를 갖고오기 위해서 어떤 부분에 위치해 있는지 미리 찾기 '''
+            each_sentence = []
+            each_sentence.append(output.last_hidden_state[i][0]) # CLS 
+
+            subj_idx = x['input_ids'][i].find(subj) 
+            subj_type_idx = subj_idx + 1 # subject 유형
+            each_sentence.append(output.last_hidden_state[i][subj_idx]) # subj 
+            each_sentence.append(output.last_hidden_state[i][subj_type_idx]) # subj type
+
+            obj_idx = x['input_ids'][i].find(obj)
+            obj_type_idx = obj_idx + 1
+            each_sentence.append(output.last_hidden_state[i][obj_idx]) # obj
+            each_sentence.append(output.last_hidden_state[i][obj_type_idx]) # obj type
+            before_classification.append(torch.stack(each_sentence))
+
+        for idx, thing in enumerate(before_classification) :
+            before_classification = thing * 0.2
+
+        before_classification_tensor = tensor.stack(before_classification) # batch x max_length x hidden
+
+        return output['logits'], last_layer

@@ -210,7 +210,7 @@ def train():
     train_dataset=RE_train_dataset,         # training dataset
     eval_dataset=RE_dev_dataset,             # evaluation dataset
     compute_metrics=compute_metrics,        # define metrics function
-    data_collator=data_collator,
+    #data_collator=data_collator,
   )
 
   # train model
