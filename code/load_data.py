@@ -39,10 +39,9 @@ def add_discription(sentence, sub_word, obj_word, obj_type):
   
   discription = f"이 문장에서{obj_word}는{sub_word}의{obj_type}이다." # 자체에 앞 뒤 띄어쓰기와 '있음.
 
-  sentence = sentence + discription
+  sentence = sentence + ':' + discription
   
   return sentence
-
   
 def preprocessing_dataset(dataset, discrip):
   """ 처음 불러온 csv 파일을 원하는 형태의 DataFrame으로 변경 시켜줍니다."""
@@ -110,7 +109,7 @@ def punct_preprocessing_dataset(dataset, discrip):
     obj_entity = eval(obj_entity)
     
     sub_idx, obj_idx = [sub_entity['start_idx'], sub_entity['end_idx']], [obj_entity['start_idx'], obj_entity['end_idx']]
-    sub_type, obj_type = f" \'{sub_entity['type']}\' ", f" \'{obj_entity['type']}\' "
+    sub_type, obj_type = sub_entity['type'], obj_entity['type']
     sub_word, obj_word = f" \'{sub_entity['word']}\' ", f" \'{obj_entity['word']}\' "
     
     if sub_idx[0] < obj_idx[0]:
@@ -124,7 +123,7 @@ def punct_preprocessing_dataset(dataset, discrip):
       # ex) 〈Something〉는 @ § PER § 조지 해리슨 @이 쓰고 # ^ ORG ^ 비틀즈 #가 1969년 앨범 《Abbey Road》에 담은 노래다
     
     if discrip:
-      sentence = add_discription(sentence, sub_word, obj_word, obj_type)
+      sentence = add_discription(sentence, sub_word, obj_word, f" \'{obj_type}\' ")
       
     sentences.append(sentence)
   
@@ -185,14 +184,3 @@ def punct_tokenized_dataset(dataset, tokenizer):
     add_special_tokens=True,
     )
   return tokenized_sentences
-
-def discrip_tokenized_dataset(dataset, tokenizer):
-  tokenized_sentences = tokenizer(
-    list(dataset['sentence']),
-    return_tensors="pt",
-    padding=True,
-    truncation=True,
-    max_length=256,
-    add_special_tokens=True,
-    )
-  return tokenized_sentences # 지금 special, punct, discrip tokenized는 다 똑같긴 한데.
