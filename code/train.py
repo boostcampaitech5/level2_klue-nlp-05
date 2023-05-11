@@ -19,6 +19,7 @@ from custom.CustomDataCollator import *
 from module.seed_everything import seed_everything
 from module.train_val_split import train_val_split
 from module.add_token import add_token
+from module.attention_heatmap import attention_heatmap
 
 def klue_re_micro_f1(preds, labels):
     """KLUE-RE micro f1 (except no_relation)"""
@@ -52,6 +53,7 @@ def klue_re_auprc(probs, labels):
 
 def compute_metrics(pred):
   """ validation을 위한 metrics function """
+  
   labels = pred.label_ids
   preds = pred.predictions.argmax(-1)
   probs = pred.predictions
@@ -84,8 +86,10 @@ def train():
   tokenizer = add_token(tokenizer, CFG['MODEL_TYPE'])
 
   if CFG['RATIO'] == 0.0:
+    train_val_split(0.15)
     train_dataset = load_data(CFG['TRAIN_PATH'], CFG['MODEL_TYPE'])
-    dev_dataset = load_data(CFG['DEV_PATH'], CFG['MODEL_TYPE'])
+    dev_dataset = load_data(CFG['SPLIT_DEV_PATH'], CFG['MODEL_TYPE'])
+    # dev_dataset = load_data(CFG['DEV_PATH'], CFG['MODEL_TYPE'])
   else:
     train_val_split(CFG['RATIO'])
     train_dataset = load_data(CFG['SPLIT_TRAIN_PATH'], CFG['MODEL_TYPE'])
@@ -135,7 +139,7 @@ def train():
     model = SepecialPunctBERT(MODEL_NAME, config=model_config, tokenizer=tokenizer)
 
     data_collator = DataCollatorWithPadding(tokenizer)
-
+    
   print(model.config)
   model.parameters
   model.to(device)
@@ -203,6 +207,8 @@ def train():
   # train model
   trainer.train()
   model.save_pretrained(CFG['MODEL_SAVE_DIR'])
+  
+  attention_heatmap(model, tokenizer, dev_dataset, device, CFG['MODEL_TYPE'])
 
 def main():
   train()

@@ -44,8 +44,11 @@ def inference(model, tokenized_sent, device, model_type):
             attention_mask=data['attention_mask'].to(device),
             token_type_ids=data['token_type_ids'].to(device)
             )
-
-    logits = outputs[0]
+    if model_type == 'base':
+      logits = outputs[0]
+    else:
+      logits = outputs['logits']
+    
     prob = F.softmax(logits, dim=-1).detach().cpu().numpy()
     logits = logits.detach().cpu().numpy()
     result = np.argmax(logits, axis=-1)
@@ -54,6 +57,7 @@ def inference(model, tokenized_sent, device, model_type):
     output_prob.append(prob)
 
   return np.concatenate(output_pred).tolist(), np.concatenate(output_prob, axis=0).tolist()
+
 def num_to_label(label):
   """
     숫자로 되어 있던 class를 원본 문자열 라벨로 변환 합니다.
@@ -89,7 +93,7 @@ def load_test_dataset(dataset_dir, tokenizer, model_type):
     test_dataset = load_data(dataset_dir, model_type)
     test_label = list(map(int,test_dataset['label'].values))
     # tokenizing dataset
-    tokenized_test, entity_type = punct_tokenized_dataset(test_dataset, tokenizer)
+    tokenized_test = punct_tokenized_dataset(test_dataset, tokenizer)
     return test_dataset['id'], tokenized_test, test_label
 
 def main(CFG):
