@@ -1,3 +1,7 @@
+from transformers import AutoModel, BertPreTrainedModel
+import torch
+from copy import deepcopy
+
 class SepecialEntityBERT(BertPreTrainedModel):
     def __init__(self, model_name, config, tokenizer):
         super().__init__(config)

@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-# class FocalLoss(torch.nn.Module):
+# class FocalLoss(nn.Module):
 #     def __init__(self, weight=None, gamma=2.0, num_classes=30, reduction='mean'):
 #         nn.Module.__init__(self)
 #         self.weight = weight
@@ -30,10 +30,11 @@ class CustomTrainer(Trainer):
         
     def compute_loss(self, model, inputs, return_outputs=False):
         
-        logits = model(**inputs)[0].unsqueeze(1)
+        outputs = model(**inputs)
+        logits = outputs['logits']
         labels = inputs['labels']
         
-        print('!!!!!!!!!!!!!!!!!!!!!!!!!!', labels.size(), logits.size())
         loss = self.loss_fn(logits, labels)
+        # print(loss, outputs['loss'])
         
         return (loss, outputs) if return_outputs else loss
