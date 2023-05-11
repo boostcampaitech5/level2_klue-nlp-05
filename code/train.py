@@ -8,7 +8,7 @@ import torch
 import sklearn
 import numpy as np
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score
-from transformers import DataCollatorWithPadding, AutoTokenizer, AutoConfig, AutoModelForSequenceClassification, Trainer, TrainingArguments, RobertaConfig, RobertaTokenizer, RobertaForSequenceClassification, BertTokenizer
+from transformers import DataCollatorWithPadding, AutoTokenizer, AutoConfig, AutoModelForSequenceClassification, Trainer, TrainingArguments, RobertaConfig, RobertaTokenizer, RobertaForSequenceClassification, BertTokenizer, EarlyStoppingCallback
 from load_data import *
 import wandb
 import yaml
@@ -20,19 +20,28 @@ from module.seed_everything import seed_everything
 from module.train_val_split import train_val_split
 from module.add_token import add_token
 
+label_list = ['no_relation', 'org:top_members/employees', 'org:members', 'org:product', 'per:title', 'org:alternate_names',
+      'per:employee_of', 'org:place_of_headquarters', 'per:product',
+      'org:number_of_employees/members', 'per:children',
+      'per:place_of_residence', 'per:alternate_names',
+      'per:other_family', 'per:colleagues', 'per:origin', 'per:siblings',
+      'per:spouse', 'org:founded', 'org:political/religious_affiliation',
+      'org:member_of', 'per:parents', 'org:dissolved',
+      'per:schools_attended', 'per:date_of_death', 'per:date_of_birth',
+      'per:place_of_birth', 'per:place_of_death', 'org:founded_by',
+      'per:religion']
+  
+def viz(labels, preds, probs):
+  """vizualize ROC, PR graph and confusion matrix"""
+  wandb.log(
+    {
+    "auprc": wandb.plot.roc_curve(labels, probs, labels=label_list),
+    "precision_recall": wandb.plot.pr_curve(labels, probs, labels=label_list),  
+    "Confusion Matrix" : wandb.plot.confusion_matrix(y_true=labels, preds=preds, class_names=label_list),
+    })
+
 def klue_re_micro_f1(preds, labels):
     """KLUE-RE micro f1 (except no_relation)"""
-    label_list = ['no_relation', 'org:top_members/employees', 'org:members',
-       'org:product', 'per:title', 'org:alternate_names',
-       'per:employee_of', 'org:place_of_headquarters', 'per:product',
-       'org:number_of_employees/members', 'per:children',
-       'per:place_of_residence', 'per:alternate_names',
-       'per:other_family', 'per:colleagues', 'per:origin', 'per:siblings',
-       'per:spouse', 'org:founded', 'org:political/religious_affiliation',
-       'org:member_of', 'per:parents', 'org:dissolved',
-       'per:schools_attended', 'per:date_of_death', 'per:date_of_birth',
-       'per:place_of_birth', 'per:place_of_death', 'org:founded_by',
-       'per:religion']
     no_relation_label_idx = label_list.index("no_relation")
     label_indices = list(range(len(label_list)))
     label_indices.remove(no_relation_label_idx)
@@ -55,11 +64,13 @@ def compute_metrics(pred):
   labels = pred.label_ids
   preds = pred.predictions.argmax(-1)
   probs = pred.predictions
-
+  
   f1 = klue_re_micro_f1(preds, labels)
   auprc = klue_re_auprc(probs, labels)
   acc = accuracy_score(labels, preds)
-
+  
+  viz(labels, preds, probs)
+    
   return {
       'micro f1 score': f1,
       'auprc' : auprc,
@@ -158,8 +169,10 @@ def train():
       warmup_steps=CFG['WARMUP_STEP'],                # number of warmup steps for learning rate scheduler
       weight_decay=CFG['WEIGHT_DECAY'],               # strength of weight decay
       logging_dir=CFG['LOGGING_DIR'],            # directory for storing logs
-      logging_steps=CFG['LOGGING_STEP'],              # log saving step.
-      evaluation_strategy='steps', # evaluation strategy to adopt during training
+      logging_steps=CFG['LOGGING_STEP'],
+      logging_strategy=CFG['STRATEGY'],# log saving step.
+      save_strategy=CFG['STRATEGY'],
+      evaluation_strategy=CFG['STRATEGY'], # evaluation strategy to adopt during training
                                   # `no`: No evaluation during training.
                                   # `steps`: Evaluate every `eval_steps`.
                                   # `epoch`: Evaluate every end of epoch.
@@ -168,6 +181,7 @@ def train():
       report_to="wandb",
       metric_for_best_model='micro f1 score'
     )
+    
   else:
     wandb.init(project=CFG['WANDB_PROJECT'], name=CFG['WANDB_NAME'])
     training_args = TrainingArguments(
@@ -181,8 +195,10 @@ def train():
       warmup_steps=CFG['WARMUP_STEP'],                # number of warmup steps for learning rate scheduler
       weight_decay=CFG['WEIGHT_DECAY'],               # strength of weight decay
       logging_dir=CFG['LOGGING_DIR'],            # directory for storing logs
-      logging_steps=CFG['LOGGING_STEP'],              # log saving step.
-      evaluation_strategy='steps', # evaluation strategy to adopt during training
+      logging_steps=CFG['LOGGING_STEP'],
+      logging_strategy=CFG['STRATEGY'],# log saving step.
+      save_strategy=CFG['STRATEGY'],
+      evaluation_strategy=CFG['STRATEGY'], # evaluation strategy to adopt during training
                                   # `no`: No evaluation during training.
                                   # `steps`: Evaluate every `eval_steps`.
                                   # `epoch`: Evaluate every end of epoch.
@@ -191,6 +207,7 @@ def train():
       report_to="wandb", 
       metric_for_best_model='micro f1 score'
     )
+    
   trainer = Trainer(
     model=model,                         # the instantiated 🤗 Transformers model to be trained
     args=training_args,                  # training arguments, defined above
@@ -198,12 +215,14 @@ def train():
     eval_dataset=RE_dev_dataset,             # evaluation dataset
     compute_metrics=compute_metrics,        # define metrics function
     data_collator=data_collator,
+    callbacks=[EarlyStoppingCallback(early_stopping_patience=30)]
   )
 
   # train model
   trainer.train()
   model.save_pretrained(CFG['MODEL_SAVE_DIR'])
-
+  wandb.finish()
+  
 def main():
   train()
 
@@ -219,4 +238,5 @@ if __name__ == '__main__':
     sweep_id = wandb.sweep(sweep=sweep_configuration, project=CFG['WANDB_PROJECT'])
     wandb.agent(sweep_id=sweep_id, function=main, count=CFG['SWEEP_COUNT'])
 
+  
   main()
