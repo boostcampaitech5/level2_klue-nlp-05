@@ -35,24 +35,40 @@ class RE_special_Dataset(torch.utils.data.Dataset):
   def __len__(self):
     return len(self.labels)
 
-def preprocessing_dataset(dataset):
+def add_discription(sentence, sub_word, obj_word, obj_type):
+  
+  discription = f"이 문장에서{obj_word}는{sub_word}의{obj_type}이다." # 자체에 앞 뒤 띄어쓰기와 '있음.
+
+  sentence = sentence + discription
+  
+  return sentence
+
+  
+def preprocessing_dataset(dataset, discrip):
   """ 처음 불러온 csv 파일을 원하는 형태의 DataFrame으로 변경 시켜줍니다."""
   subject_words = []
   object_words = []
+  sentences = []
 
-  for sub_entity, obj_entity in zip(dataset['subject_entity'], dataset['object_entity']):
+  for sub_entity, obj_entity, sentence in zip(dataset['subject_entity'], dataset['object_entity'], dataset['sentence']):
     sub_word = eval(sub_entity)['word']
     obj_word = eval(obj_entity)['word']
-    sub_word = f'\' {sub_word} \''
-    obj_word = f'\' {obj_word} \''
+    sub_word = f' \'{sub_word}\' '
+    obj_word = f' \'{obj_word}\' '
 
     subject_words.append(sub_word)
     object_words.append(obj_word)
-
-  out_dataset = pd.DataFrame({'id':dataset['id'], 'sentence':dataset['sentence'], 'subject_entity':subject_words, 'object_entity':object_words, 'label':dataset['label'],})
+    
+    if discrip:
+      sentence = add_discription(sentence, sub_word, obj_word, eval(obj_entity)['type'])
+      sentences.append(sentence)
+    else:
+      sentences.append(sentence)
+    
+  out_dataset = pd.DataFrame({'id':dataset['id'], 'sentence':sentences, 'subject_entity':subject_words, 'object_entity':object_words, 'label':dataset['label'],})
   return out_dataset
 
-def special_preprocessing_dataset(dataset):
+def special_preprocessing_dataset(dataset, discrip):
   sentences = []
   subject_type = []
   object_type = []
@@ -66,24 +82,27 @@ def special_preprocessing_dataset(dataset):
     object_type.append(obj_type)
 
     sub_idx, obj_idx = [sub_entity['start_idx'], sub_entity['end_idx']], [obj_entity['start_idx'], obj_entity['end_idx']]
-    sub_start, sub_end = f'[S:{sub_type}] ', f' [/S:{sub_type}]'
-    obj_start, obj_end = f'[O:{obj_type}] ', f' [/O:{obj_type}]'
+    sub_start, sub_end = f'[S:{sub_type}]', f'[/S:{sub_type}]'
+    obj_start, obj_end = f'[O:{obj_type}]', f'[/O:{obj_type}]'
+    sub_word, obj_word = f" \'{sub_entity['word']}\' ", f" \'{obj_entity['word']}\' "
 
     if sub_idx[0] < obj_idx[0]:
-      sentence = (sentence[:sub_idx[0]] + sub_start + sub_entity['word'] + sub_end 
-                  + sentence[sub_idx[1]+1:obj_idx[0]] + obj_start + obj_entity['word']
+      sentence = (sentence[:sub_idx[0]] + sub_start + sub_word + sub_end 
+                  + sentence[sub_idx[1]+1:obj_idx[0]] + obj_start + obj_word
                   + obj_end + sentence[obj_idx[1]+1:])
     else:
-      sentence = (sentence[:obj_idx[0]] + obj_start + obj_entity['word'] + obj_end 
-                  + sentence[obj_idx[1]+1:sub_idx[0]] + sub_start + sub_entity['word']
+      sentence = (sentence[:obj_idx[0]] + obj_start + obj_word + obj_end 
+                  + sentence[obj_idx[1]+1:sub_idx[0]] + sub_start + sub_word
                   + sub_end + sentence[sub_idx[1]+1:])
+    if discrip:
+      sentence = add_discription(sentence, sub_word, obj_word, f" \'{obj_type}\' ")
       
     sentences.append(sentence)
 
   out_dataset = pd.DataFrame({'id':dataset['id'], 'sentence':sentences, 'label':dataset['label'], 'subject_type':subject_type, 'object_type':object_type})
   return out_dataset 
 
-def punct_preprocessing_dataset(dataset):
+def punct_preprocessing_dataset(dataset, discrip):
   sentences = []
   
   for sub_entity, obj_entity, sentence in zip(dataset['subject_entity'], dataset['object_entity'], dataset['sentence']):
@@ -91,17 +110,21 @@ def punct_preprocessing_dataset(dataset):
     obj_entity = eval(obj_entity)
     
     sub_idx, obj_idx = [sub_entity['start_idx'], sub_entity['end_idx']], [obj_entity['start_idx'], obj_entity['end_idx']]
-    sub_type, obj_type = sub_entity['type'], obj_entity['type']
+    sub_type, obj_type = f" \'{sub_entity['type']}\' ", f" \'{obj_entity['type']}\' "
+    sub_word, obj_word = f" \'{sub_entity['word']}\' ", f" \'{obj_entity['word']}\' "
     
     if sub_idx[0] < obj_idx[0]:
-      sentence = (sentence[:sub_idx[0]] + f'@ § {sub_type} § ' + sub_entity['word'] + ' @'
-                  + sentence[sub_idx[1]+1:obj_idx[0]] + f'# ^ {obj_type} ^ ' + obj_entity['word']
-                  + ' #' + sentence[obj_idx[1]+1:])
+      sentence = (sentence[:sub_idx[0]] + f'@ §{sub_type}§' + sub_word + '@'
+                  + sentence[sub_idx[1]+1:obj_idx[0]] + f'# ^{obj_type}^' + obj_word
+                  + '#' + sentence[obj_idx[1]+1:])
     else:
-      sentence = (sentence[:obj_idx[0]] + f'@ § {obj_type} § ' + obj_entity['word'] + ' @'
-                  + sentence[obj_idx[1]+1:sub_idx[0]] + f'# ^ {sub_type} ^ ' + sub_entity['word']
-                  + ' #' + sentence[sub_idx[1]+1:])
+      sentence = (sentence[:obj_idx[0]] + f'# ^{obj_type}^' + obj_word + '#'
+                  + sentence[obj_idx[1]+1:sub_idx[0]] + f'@ §{sub_type}§' + sub_word
+                  + '@' + sentence[sub_idx[1]+1:])
       # ex) 〈Something〉는 @ § PER § 조지 해리슨 @이 쓰고 # ^ ORG ^ 비틀즈 #가 1969년 앨범 《Abbey Road》에 담은 노래다
+    
+    if discrip:
+      sentence = add_discription(sentence, sub_word, obj_word, obj_type)
       
     sentences.append(sentence)
   
@@ -109,16 +132,17 @@ def punct_preprocessing_dataset(dataset):
   
   return out_dataset
 
-def load_data(dataset_dir, model_type):
+
+def load_data(dataset_dir, model_type, discrip):
   """ csv 파일을 경로에 맡게 불러 옵니다. """
   pd_dataset = pd.read_csv(dataset_dir)
 
   if model_type == 'entity_special':
-    dataset = special_preprocessing_dataset(pd_dataset)
+    dataset = special_preprocessing_dataset(pd_dataset, discrip)
   elif model_type == 'entity_punct':
-    dataset = punct_preprocessing_dataset(pd_dataset)
+    dataset = punct_preprocessing_dataset(pd_dataset, discrip)
   else:
-    dataset = preprocessing_dataset(pd_dataset)
+    dataset = preprocessing_dataset(pd_dataset, discrip)
 
   return dataset
 
@@ -161,3 +185,14 @@ def punct_tokenized_dataset(dataset, tokenizer):
     add_special_tokens=True,
     )
   return tokenized_sentences
+
+def discrip_tokenized_dataset(dataset, tokenizer):
+  tokenized_sentences = tokenizer(
+    list(dataset['sentence']),
+    return_tensors="pt",
+    padding=True,
+    truncation=True,
+    max_length=256,
+    add_special_tokens=True,
+    )
+  return tokenized_sentences # 지금 special, punct, discrip tokenized는 다 똑같긴 한데.

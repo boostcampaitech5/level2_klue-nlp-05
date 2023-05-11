@@ -84,12 +84,13 @@ def train():
   tokenizer = add_token(tokenizer, CFG['MODEL_TYPE'])
 
   if CFG['RATIO'] == 0.0:
-    train_dataset = load_data(CFG['TRAIN_PATH'], CFG['MODEL_TYPE'])
-    dev_dataset = load_data(CFG['DEV_PATH'], CFG['MODEL_TYPE'])
+    train_val_split(0.1)
+    train_dataset = load_data(CFG['TRAIN_PATH'], CFG['MODEL_TYPE'], CFG['DISCRIP'])
+    dev_dataset = load_data(CFG['SPLIT_DEV_PATH'], CFG['MODEL_TYPE'], CFG['DISCRIP'])
   else:
     train_val_split(CFG['RATIO'])
-    train_dataset = load_data(CFG['SPLIT_TRAIN_PATH'], CFG['MODEL_TYPE'])
-    dev_dataset = load_data(CFG['SPLIT_DEV_PATH'], CFG['MODEL_TYPE'])
+    train_dataset = load_data(CFG['SPLIT_TRAIN_PATH'], CFG['MODEL_TYPE'], CFG['DISCRIP'])
+    dev_dataset = load_data(CFG['SPLIT_DEV_PATH'], CFG['MODEL_TYPE'], CFG['DISCRIP'])
 
   train_label = label_to_num(train_dataset['label'].values)
   dev_label = label_to_num(dev_dataset['label'].values)

@@ -35,8 +35,8 @@ class SepecialEntityBERT(BertPreTrainedModel):
         # 각 classifier layer를 통과한 hidden state를 가중합하고 그 가중치를 학습시킨다.
         self.weight_parameter = torch.nn.Parameter(torch.tensor([[[0.25]], [[0.25]], [[0.25]], [[0.25]]]))
         
-    def forward(self, input_ids, attention_mask=None, token_type_ids=None, labels=None, subject_type=None, object_type=None):
-        outputs = self.model(input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
+    def forward(self, input_ids, attention_mask=None, token_type_ids=None, labels=None, subject_type=None, object_type=None, output_attentions=False):
+        outputs = self.model(input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids, output_attentions=output_attentions)
         special_outputs = outputs.last_hidden_state
                         
         batch_size = len(input_ids)
@@ -61,15 +61,19 @@ class SepecialEntityBERT(BertPreTrainedModel):
         logits = torch.stack([self.special_classifier[i](pooled_output[i].unsqueeze(1)) for i in range(4)], dim=0) # (4, batch, num_label)
         logits = torch.sum(self.weight_parameter*logits, dim=0) # (batch_size, num_label)
         
-        outputs = (logits,) + outputs[2:]
+        loss = None
         
         if labels is not None: # 실제로 inference에서 label은 None이 아니라 100이지만 그냥 return 할 때, 필요하므로 냅두었다.
             loss_fun = torch.nn.CrossEntropyLoss()
             loss = loss_fun(logits.view(-1, self.config.num_labels), labels.view(-1))
-            
-            outputs = (loss,) + outputs
         
-        return outputs # (loss), logits, (hidden_states), (attentions)                
+        # attention 은 num_layer * (batch_size, num_attention_head, sequence_length, sequence_length)
+        if output_attentions:    
+            outputs = {"loss" : loss, "logits": logits, "attentions": outputs.attentions[0]}
+        else:
+            outputs = {"loss" : loss, "logits": logits}
+        
+        return outputs # (loss), logits, (attentions)               
         
 class SepecialPunctBERT(BertPreTrainedModel):
     def __init__(self, model_name, config, tokenizer):
@@ -95,8 +99,8 @@ class SepecialPunctBERT(BertPreTrainedModel):
         # 각 classifier layer를 통과한 hidden state를 가중합하고 그 가중치를 학습시킨다.
         self.weight_parameter = torch.nn.Parameter(torch.tensor([[[0.5]], [[0.5]]]))
         
-    def forward(self, input_ids, attention_mask=None, token_type_ids=None, labels=None):
-        outputs = self.model(input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
+    def forward(self, input_ids, attention_mask=None, token_type_ids=None, labels=None, output_attentions=False):
+        outputs = self.model(input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids, output_attentions=output_attentions)
         special_outputs = outputs.last_hidden_state
                         
         batch_size = len(input_ids)
@@ -117,12 +121,16 @@ class SepecialPunctBERT(BertPreTrainedModel):
         logits = torch.stack([self.special_classifier[i](pooled_output[i].unsqueeze(1)) for i in range(2)], dim=0) # (2, batch, num_label)
         logits = torch.sum(self.weight_parameter*logits, dim=0) # (batch_size, num_label)
         
-        outputs = (logits,) + outputs[2:]
+        loss = None
         
         if labels is not None:
             loss_fun = torch.nn.CrossEntropyLoss()
             loss = loss_fun(logits.view(-1, self.config.num_labels), labels.view(-1))
-            
-            outputs = (loss,) + outputs
         
-        return outputs # (loss), logits, (hidden_states), (attentions)
+        # attention 은 num_layer * (batch_size, num_attention_head, sequence_length, sequence_length)    
+        if output_attentions:    
+            outputs = {"loss" : loss, "logits": logits, "attentions": outputs.attentions[0]}
+        else:
+            outputs = {"loss" : loss, "logits": logits}
+        
+        return outputs # (loss), logits, (attentions)
