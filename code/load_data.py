@@ -98,16 +98,16 @@ def cls_special_preprocessing_dataset(dataset) :
 
     if sub_idx < obj_idx:
       sentence = (sentence[:subj_idx] + '[SUBJ]' + subj_type + sentence[subj_idx:obj_idx] + '[OBJ]'
-                  + obj_type + sentence[obj_idx:]
+                  + obj_type + sentence[obj_idx:])
       sentence = (sentence[:obj_idx] + '[OBJ]' + obj_type + sentence[obj_idx:subj_idx] + '[SUBJ]'
-                  + subj_type + sentence[subj_idx:]
+                  + subj_type + sentence[subj_idx:])
     else:
       sentence = (sentence[:obj_idx] + '[OBJ]' + obj_type + sentence[obj_idx:subj_idx] + '[SUBJ]'
-                  + subj_type + sentence[subj_idx:]
+                  + subj_type + sentence[subj_idx:])
     setences.append(sentence)
 
-output_dataset = pd.DataFrame({'id':dataset['id'], 'sentence':sentences, 'label':dataset['label'], 'subject_type':subject_type, 'object_type':object_type})
-return output_dataset
+  output_dataset = pd.DataFrame({'id':dataset['id'], 'sentence':sentences, 'label':dataset['label'], 'subject_type':subject_type, 'object_type':object_type})
+  return output_dataset
 
 def punct_preprocessing_dataset(dataset):
   sentences = []
@@ -172,7 +172,7 @@ def special_tokenized_dataset(dataset, tokenizer):
   tokenized_sentences = tokenizer(
     list(dataset['sentence']),
     return_tensors="pt",
-    padding='max_length',
+    padding=True,
     truncation=True,
     max_length=256,
     add_special_tokens=True,
