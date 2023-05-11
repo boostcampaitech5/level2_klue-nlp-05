@@ -15,6 +15,7 @@ import yaml
 
 from custom.CustomModel import *
 from custom.CustomDataCollator import *
+# from custom.CustomTrainer import *
 
 from module.seed_everything import seed_everything
 from module.train_val_split import train_val_split
@@ -189,9 +190,11 @@ def train():
       eval_steps=CFG['EVAL_STEP'],           # evaluation step.
       load_best_model_at_end=True,
       report_to="wandb", 
-      metric_for_best_model='micro f1 score'
+      metric_for_best_model='auprc'
     )
   trainer = Trainer(
+  # trainer = CustomTrainer(
+    # loss_fn=None,
     model=model,                         # the instantiated 🤗 Transformers model to be trained
     args=training_args,                  # training arguments, defined above
     train_dataset=RE_train_dataset,         # training dataset
