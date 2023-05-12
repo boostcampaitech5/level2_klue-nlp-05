@@ -92,6 +92,13 @@ def load_test_dataset(dataset_dir, tokenizer, model_type):
     tokenized_test, entity_type = punct_tokenized_dataset(test_dataset, tokenizer)
     return test_dataset['id'], tokenized_test, test_label
 
+  elif model_type == "cls_entity_special" :
+    test_dataset = load_data(dataset_dir, model_type)
+    test_label = list(map(int, test_dataset['label'].values))
+    # tokenizing dataset
+    tokenized_test, entity_type = special_tokenized_dataset(test_dataset, tokenizer)
+    return test_dataset['id'], tokenized_test, test_label
+
 def main(CFG):
   """
     주어진 dataset csv 파일과 같은 형태일 경우 inference 가능한 코드입니다.
@@ -128,6 +135,12 @@ def main(CFG):
     
     test_id, test_dataset, test_label = load_test_dataset(test_dataset_dir, tokenizer, CFG['MODEL_TYPE'])
     Re_test_dataset = RE_Dataset(test_dataset ,test_label)
+  
+  elif CFG["MODEL_TYPE"] == 'cls_entity_special' :
+    tokenizer = add_token_ver2(tokenizer)
+    model = CLS_SpecialEntityBERT(Tokenizer_NAME, model_config, tokenizer)
+    state_dict = torch.load(f"{MODEL_NAME}/pytorch_model.bin")
+    model.load_state_dict(state_dict)
 
   model.to(device)
 
