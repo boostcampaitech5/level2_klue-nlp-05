@@ -141,6 +141,14 @@ def drp_tokenized_dataset(dataset, tokenizer):
       no_predict_tensor.append(no_predict_idx)
            
       padded_tensor = pad_sequence([torch.tensor(seq) for seq in sublists], batch_first=True, padding_value=pad) # 30, max_seqlen
+      max_seqlen = padded_tensor.size(1)
+      
+      if max_seqlen > 512:
+        padded_tensor = padded_tensor[:, :512]
+      else:
+        padding = torch.full((30, 512-max_seqlen), pad)
+        padded_tensor = torch.cat([padded_tensor, padding], dim=1)
+      
       att_mask = torch.where(padded_tensor == pad, torch.tensor(0.0), torch.tensor(1.0)) # 30, max_seqlen
 
       input_tensor.append(padded_tensor)

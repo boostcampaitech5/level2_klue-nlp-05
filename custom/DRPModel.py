@@ -42,33 +42,37 @@ class DRPBERT(BertPreTrainedModel):
         self.weight = torch.nn.Linear(in_features = config.hidden_size, out_features=1, bias=True)
         
     def forward(self, input_tensor, att_mask_tensor=None, no_predict_tensor=None, labels=None):
+        # input_tensor : batch, 30, 512   att_mask_tensor : batch 30 512  no_predict_tensor : batch 30
         
         batch_size = len(input_tensor)
-        batch_output = []
+        logits = []
+        '''
+        input_tensor = input_tensor.view(-1, input_tensor.size(-1)) # (batch_size*30, 512)
+        att_mask_tensor = att_mask_tensor.view(-1, att_mask_tensor.size(-1)) # (batch_size*30, 512)
+        no_predict_tensor = no_predict_tensor.view(-1) # (batch_size*30, )
         
+        outputs = self.model(input_tensor, attention_mask=att_mask_tensor)
+        outputs = outputs.last_hiden_state[:, 0].detach() # (batch_size * 30, hidden_size)
+        outputs = outputs * (1 - no_predict_tensor.unsqueeze(-1)) # batch_size*30, hidden_size
+        
+        outputs = self.weight(outputs)
+        logits = outputs.view(batch_size, 30)
+        '''
         for i in range(batch_size):
-            '''
-            input_id = input_ids[i]
+            new_input = input_tensor[i][(no_predict_tensor[i]==0).squeeze()].detach()
+            new_attention = att_mask_tensor[i][(no_predict_tensor[i]==0).squeeze()].detach()
             
-            sublists = [[self.cls]+list(group)+[self.sep] for key, group in groupby(input_id, lambda x: x == self.splt) if not key]
-            sublists.pop()
-            sublists[0].pop(0)
+            outputs = self.model(new_input, attention_mask=new_attention)
+            outputs = outputs.last_hidden_state[:, 0].detach() # restric_num, hidden_size
             
-            no_predict_idx = [1 if sublist == [self.cls, self.no, self.sep] else 0 for index, sublist in enumerate(sublists)]
-            no_predict_idx = torch.tensor(no_predict_idx).unsqueeze(1).to(device) # (30, 1)
+            #outputs = outputs*(1-no_predict_tensor[i]) # 30, hidden_size
+            outputs = self.weight(outputs) # restric_num, 1
+            new_outputs = torch.zeros((30, 1)).to(device)
+            new_outputs[(no_predict_tensor[i]==0).squeeze()]=outputs
             
-            padded_tensor = pad_sequence([torch.tensor(seq) for seq in sublists], batch_first=True, padding_value=self.pad) # 30, max_seqlen
-            att_mask = torch.where(padded_tensor == self.pad, torch.tensor(0.0), torch.tensor(1.0))
-            '''
+            logits.append(new_outputs.squeeze()) # 30
             
-            outputs = self.model(input_tensor[i], attention_mask=att_mask_tensor[i].to(device))
-            outputs = outputs.last_hidden_state[:, 0] # 30, hidden_size
-            outputs = outputs*(1-no_predict_tensor[i]) # 30, hidden_size
-            
-            outputs = self.weight(outputs) # 30, 1
-            batch_output.append(outputs)
-            
-        logits = torch.stack(batch_output, dim=0).squeeze() # batch, 30
+        logits = torch.stack(logits, dim=0) # batch, 30    
         
         if labels is not None:
             loss_fun = torch.nn.CrossEntropyLoss()

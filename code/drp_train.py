@@ -12,14 +12,15 @@ from transformers import DataCollatorWithPadding, AutoTokenizer, AutoConfig, Aut
 from drp_load_data import *
 import wandb
 import yaml
-from torch.utils.data import DataLoader
 
 from custom.DRPModel import *
 from custom.DRPdatacollator import *
+from custom.CustomTrainer import DRPCustomTrainer
 
 from module.seed_everything import seed_everything
 from module.train_val_split import train_val_split
 from module.add_token import add_token
+
 
 def klue_re_micro_f1(preds, labels):
     """KLUE-RE micro f1 (except no_relation)"""
@@ -75,6 +76,16 @@ def label_to_num(label):
     num_label.append(dict_label_to_num[v])
   
   return num_label
+
+def my_data_collator(features):
+  
+  batch = {}
+  batch['input_tensor'] = torch.stack([feature['input_tensor'] for feature in features], dim=0)
+  batch['att_mask_tensor'] = torch.stack([feature['att_mask_tensor'] for feature in features], dim=0)
+  batch['no_predict_tensor'] = torch.stack([feature['no_predict_tensor'] for feature in features], dim=0)
+  batch['labels'] = torch.tensor([feature['labels'] for feature in features])
+  
+  return batch
 
 def train():
   with open('/opt/ml/module/config.yaml') as f:
@@ -158,8 +169,8 @@ def train():
       save_steps=CFG['SAVING_STEP'],                 # model saving step.
       num_train_epochs=CFG['MAX_EPOCH'],              # total number of training epochs
       learning_rate=CFG['LR'],               # learning_rate
-      # per_device_train_batch_size=CFG['BATCH_SIZE'],  # batch size per device during training
-      # per_device_eval_batch_size=CFG['BATCH_SIZE'],   # batch size for evaluation
+      per_device_train_batch_size=CFG['BATCH_SIZE'],  # batch size per device during training
+      per_device_eval_batch_size=CFG['BATCH_SIZE'],   # batch size for evaluation
       warmup_steps=CFG['WARMUP_STEP'],                # number of warmup steps for learning rate scheduler
       weight_decay=CFG['WEIGHT_DECAY'],               # strength of weight decay
       logging_dir=CFG['LOGGING_DIR'],            # directory for storing logs
@@ -173,15 +184,24 @@ def train():
       report_to="wandb", 
       metric_for_best_model='micro f1 score'
     )
+  
   trainer = Trainer(
     model=model,                         # the instantiated 🤗 Transformers model to be trained
     args=training_args,                  # training arguments, defined above
     train_dataset=RE_train_dataset,         # training dataset
     eval_dataset=RE_dev_dataset,            # evaluation dataset    
-    compute_metrics=compute_metrics,        # define metrics function
-    data_collator=None,
+    compute_metrics=compute_metrics,        # define metrics function,
+    data_collator=my_data_collator,
   )
-
+  '''
+  trainer = DRPCustomTrainer(
+    model=model,                         # the instantiated 🤗 Transformers model to be trained
+    args=training_args,                  # training arguments, defined above
+    train_dataset=RE_train_dataset,         # training dataset
+    eval_dataset=RE_dev_dataset,            # evaluation dataset    
+    compute_metrics=compute_metrics,  # define metrics function
+    )
+  '''
   # train model
   trainer.train()
   model.save_pretrained(CFG['MODEL_SAVE_DIR'])
