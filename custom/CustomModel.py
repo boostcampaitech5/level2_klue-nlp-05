@@ -137,21 +137,17 @@ class CLS_SpecialEntityBERT(BertPreTrainedModel) :
         self.tokenizer = tokenizer
         self.config = config
 
-        # special entity type 에 맞는 special token의 id에 대한 dictionary
-        # special_tokens = ['[SUBJ]' , '[OBJ]' , '[PER]' , '[ORG]', '[DAT]' , '[LOC]' , '[POH]' , '[NOH]']
         self.subj = tokenizer.convert_tokens_to_ids('[SUBJ]')
         self.obj = tokenizer.convert_tokens_to_ids('[OBJ]')
-        
-        #token_ids = tokenizer.convert_tokens_to_ids(special_tokens)
         
         # 이 classifier는 각 entity special token 마다 적용된다.
         self.pool_special_linear_block = torch.nn.Sequential(
                 torch.nn.Linear(
-                    5 * self.model.config.hidden_size, 128
+                    5 * self.model.config.hidden_size, self.model.config.hidden_size
                 ),  # 5 for 1 [CLS], 2 [SUBJ], 2 [OBJ]
                 torch.nn.ReLU(),
                 torch.nn.Dropout(),
-                torch.nn.Linear(128, config.num_labels),
+                torch.nn.Linear(self.model.config.hidden_size, config.num_labels),
             )
     
     def forward(self, input_ids, attention_mask=None, token_type_ids=None, labels=None, subject_type=None, object_type=None) :
