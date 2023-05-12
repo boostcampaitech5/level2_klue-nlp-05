@@ -96,15 +96,13 @@ def cls_special_preprocessing_dataset(dataset) :
     object_type.append(obj_type)
     subj_idx , obj_idx = subj_entity['start_idx'], obj_entity['start_idx']
 
-    if sub_idx < obj_idx:
+    if subj_idx < obj_idx:
       sentence = (sentence[:subj_idx] + '[SUBJ]' + subj_type + sentence[subj_idx:obj_idx] + '[OBJ]'
                   + obj_type + sentence[obj_idx:])
-      sentence = (sentence[:obj_idx] + '[OBJ]' + obj_type + sentence[obj_idx:subj_idx] + '[SUBJ]'
-                  + subj_type + sentence[subj_idx:])
     else:
       sentence = (sentence[:obj_idx] + '[OBJ]' + obj_type + sentence[obj_idx:subj_idx] + '[SUBJ]'
                   + subj_type + sentence[subj_idx:])
-    setences.append(sentence)
+    sentences.append(sentence)
 
   output_dataset = pd.DataFrame({'id':dataset['id'], 'sentence':sentences, 'label':dataset['label'], 'subject_type':subject_type, 'object_type':object_type})
   return output_dataset
@@ -144,7 +142,7 @@ def load_data(dataset_dir, model_type):
   elif model_type == 'entity_punct':
     dataset = punct_preprocessing_dataset(pd_dataset)
   elif model_type == 'cls_entity_special':
-    dadtaset = cls_special_preprocessing_dataset(pd_dataset)
+    dataset = cls_special_preprocessing_dataset(pd_dataset)
   else:
     dataset = preprocessing_dataset(pd_dataset)
 
