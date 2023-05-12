@@ -126,7 +126,7 @@ def train():
 
     data_collator = CustomDataCollator(tokenizer)
 
-  elif CFG['MODEL_TYPE'] == 'entity_punct':
+  elif CFG['MODEL_TYPE'] == 'entity_punct' or CFG['MODEL_TYPE'] == 'new_entity_punct':
     tokenized_train = punct_tokenized_dataset(train_dataset, tokenizer)
     tokenized_dev = punct_tokenized_dataset(dev_dataset, tokenizer)
 

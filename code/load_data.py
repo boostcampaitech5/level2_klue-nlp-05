@@ -3,6 +3,8 @@ import os
 import pandas as pd
 import torch
 
+sub_type_dict = {'PER': '인물', 'ORG': '단체', 'LOC': '장소'}
+obj_type_dict = {'PER': '인물', 'ORG': '단체', 'POH': '명칭', 'DAT': '날짜', 'LOC': '장소', 'NOH': '수'}
 class RE_Dataset(torch.utils.data.Dataset):
   """ Dataset 구성을 위한 class."""
   def __init__(self, pair_dataset, labels):
@@ -131,6 +133,33 @@ def punct_preprocessing_dataset(dataset, discrip):
   
   return out_dataset
 
+def new_punct_preprocessing_dataset(dataset, discrip):
+  sentences = []
+  
+  for sub_entity, obj_entity, sentence in zip(dataset['subject_entity'], dataset['object_entity'], dataset['sentence']):
+    sub_entity = eval(sub_entity)
+    obj_entity = eval(obj_entity)
+    
+    sub_idx, obj_idx = [sub_entity['start_idx'], sub_entity['end_idx']], [obj_entity['start_idx'], obj_entity['end_idx']]
+    sub_type, obj_type = sub_entity['type'], obj_entity['type']
+    sub_word, obj_word = f" \'{sub_entity['word']}\' ", f" \'{obj_entity['word']}\' "
+    
+    if sub_idx[0] < obj_idx[0]:
+      sentence = (sentence[:sub_idx[0]] + f'@{sub_word}(주체 {sub_type_dict[sub_type]}) @' + sentence[sub_idx[1]+1:obj_idx[0]]
+                  + f'#{obj_word}(객체 {obj_type_dict[obj_type]}) #' + sentence[obj_idx[1]+1:])
+    else:
+      sentence = (sentence[:obj_idx[0]] + f'#{obj_word}(객체 {obj_type_dict[obj_type]}) #' + sentence[obj_idx[1]+1:sub_idx[0]]
+                  + f'@{sub_word}(주체 {sub_type_dict[sub_type]}) @' + sentence[sub_idx[1]+1:])
+    # "영화 '기생충'이 제92회 아카데미 시상식에서 4관왕의 영광을 안은 가운데, 한국계 # '캐나다' (객체 장소) # 배우 @ '산드라 오' (주체 인물) @가 '기생충' 수상에 보인 반응이 화제다."
+  
+    if discrip:
+      sentence = add_discription(sentence, sub_word, obj_word, f" \'{obj_type}\' ")
+      
+    sentences.append(sentence)
+  
+  out_dataset = pd.DataFrame({'id':dataset['id'], 'sentence':sentences, 'label':dataset['label'],})
+  
+  return out_dataset  
 
 def load_data(dataset_dir, model_type, discrip):
   """ csv 파일을 경로에 맡게 불러 옵니다. """
@@ -140,7 +169,9 @@ def load_data(dataset_dir, model_type, discrip):
     dataset = special_preprocessing_dataset(pd_dataset, discrip)
   elif model_type == 'entity_punct':
     dataset = punct_preprocessing_dataset(pd_dataset, discrip)
-  else:
+  elif model_type == 'new_entity_punct':
+    dataset = new_punct_preprocessing_dataset(pd_dataset, discrip)
+  elif model_type == 'base':
     dataset = preprocessing_dataset(pd_dataset, discrip)
 
   return dataset

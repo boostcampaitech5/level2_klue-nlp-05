@@ -35,9 +35,17 @@ class SepecialEntityBERT(BertPreTrainedModel):
         # 각 classifier layer를 통과한 hidden state를 가중합하고 그 가중치를 학습시킨다.
         self.weight_parameter = torch.nn.Parameter(torch.tensor([[[0.25]], [[0.25]], [[0.25]], [[0.25]]]))
         
+        '''
+        self.classifier = torch.nn.Sequential(
+            torch.nn.Linear(in_features=4*config.hidden_size, out_features=4*config.hidden_size, bias=True)
+            torch.nn.Dropout(p=0.1)
+            torch.nn.Linear(in_features=4*config.hidden_size, out_features=config.num_labels, bias=True)
+        )
+        '''
+        
     def forward(self, input_ids, attention_mask=None, token_type_ids=None, labels=None, subject_type=None, object_type=None, output_attentions=False):
         outputs = self.model(input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids, output_attentions=output_attentions)
-        special_outputs = outputs.last_hidden_state
+        special_outputs = outputs.last_hidden_state # batch, seqlen, hidden_size
                         
         batch_size = len(input_ids)
         
@@ -54,6 +62,13 @@ class SepecialEntityBERT(BertPreTrainedModel):
             obj_end_idx = torch.nonzero(input_ids[i] == obj_end)[0][0]
             
             special_idx.append([sub_start_idx, sub_end_idx, obj_start_idx, obj_end_idx])
+        
+        '''
+        pooled_output = torch.stack([special_outputs[i, special_idx[i], :].view(-1, 4*self.config.hidden_size).squeeze() for i in range(batch_size)], dim=0) # batch, 4*hidden_size
+        
+        logits = self.classifier(pooled_output) # batch, num_labels
+        
+        '''
         
         # (batch_size, hidden_size) 가 4개인 list
         pooled_output = [torch.stack([special_outputs[i, special_idx[i][j], :] for i in range(batch_size)]) for j in range(4)]
