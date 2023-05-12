@@ -81,7 +81,7 @@ def train():
 
   MODEL_NAME = CFG['MODEL_NAME']
   tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-  if CFG['MODEL_TYPE'] !='cls_entity_special' :
+  if CFG['MODEL_TYPE'] !='cls_entity_special' and CFG['MODEL_TYPE'] != 'base':
     tokenizer = add_token(tokenizer, CFG['MODEL_TYPE'])
 
   if CFG['RATIO'] == 0.0:
