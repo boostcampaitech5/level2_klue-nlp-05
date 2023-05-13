@@ -96,12 +96,13 @@ def train():
   tokenizer = add_token(tokenizer, CFG['MODEL_TYPE'])
 
   if CFG['RATIO'] == 0.0:
-    train_dataset = load_data(CFG['TRAIN_PATH'], CFG['MODEL_TYPE'], CFG['DO_SEQUENTIALBERTMODEL'])
-    dev_dataset = load_data(CFG['DEV_PATH'], CFG['MODEL_TYPE'], CFG['DO_SEQUENTIALBERTMODEL'])
+    train_val_split(0.1)
+    train_dataset = load_data(CFG['TRAIN_PATH'], CFG['MODEL_TYPE'], CFG['DISCRIP'], CFG['DO_SEQUENTIALBERTMODEL'])
+    dev_dataset = load_data(CFG['SPLIT_DEV_PATH'], CFG['MODEL_TYPE'], CFG['DISCRIP'], CFG['DO_SEQUENTIALBERTMODEL'])
   else:
     train_val_split(CFG['RATIO'])
-    train_dataset = load_data(CFG['SPLIT_TRAIN_PATH'], CFG['MODEL_TYPE'], CFG['DO_SEQUENTIALBERTMODEL'])
-    dev_dataset = load_data(CFG['SPLIT_DEV_PATH'], CFG['MODEL_TYPE'], CFG['DO_SEQUENTIALBERTMODEL'])
+    train_dataset = load_data(CFG['SPLIT_TRAIN_PATH'], CFG['MODEL_TYPE'], CFG['DISCRIP'], CFG['DO_SEQUENTIALBERTMODEL'])
+    dev_dataset = load_data(CFG['SPLIT_DEV_PATH'], CFG['MODEL_TYPE'], CFG['DISCRIP'], CFG['DO_SEQUENTIALBERTMODEL'])
 
   train_label = label_to_num(train_dataset['label'].values)
   dev_label = label_to_num(dev_dataset['label'].values)
@@ -149,9 +150,9 @@ def train():
 
       data_collator = CustomDataCollator(tokenizer)
 
-    elif CFG['MODEL_TYPE'] == 'entity_punct':
-      tokenized_train = punct_tokenized_dataset(train_dataset, tokenizer)
-      tokenized_dev = punct_tokenized_dataset(dev_dataset, tokenizer)
+  elif CFG['MODEL_TYPE'] == 'entity_punct' or CFG['MODEL_TYPE'] == 'new_entity_punct':
+    tokenized_train = punct_tokenized_dataset(train_dataset, tokenizer)
+    tokenized_dev = punct_tokenized_dataset(dev_dataset, tokenizer)
 
       RE_train_dataset = RE_Dataset(tokenized_train, train_label)
       RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)

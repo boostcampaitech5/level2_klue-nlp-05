@@ -55,8 +55,11 @@ def inference(model, tokenized_sent, device, model_type, do_sequentialdoublebert
             attention_mask=data['attention_mask'].to(device),
             token_type_ids=data['token_type_ids'].to(device)
             )
-
-    logits = outputs[0]
+    if model_type == 'base':
+      logits = outputs[0]
+    else:
+      logits = outputs['logits']
+      
     prob = F.softmax(logits, dim=-1).detach().cpu().numpy()
     logits = logits.detach().cpu().numpy()
     result = np.argmax(logits, axis=-1)
@@ -77,38 +80,38 @@ def num_to_label(label):
   
   return origin_label
 
-def load_test_dataset(dataset_dir, tokenizer, model_type, do_sequentialdoublebert=0):
+def load_test_dataset(dataset_dir, tokenizer, model_type, discrip, do_sequentialdoublebert=0):
   """
     test dataset을 불러온 후,
     tokenizing 합니다.
   """
   if do_sequentialdoublebert:
-    test_dataset = load_data(dataset_dir, model_type, do_sequentialdoublebert)
+    test_dataset = load_data(dataset_dir, model_type, discrip, do_sequentialdoublebert)
     test_label = list(map(int,test_dataset['label'].values))
     tokenized_test, entity_type, entity_words = sequentialdoublebert_tokenized_dataset(test_dataset, tokenizer, CFG['MODEL_TYPE'])
 
     return test_dataset['id'], tokenized_test, test_label, entity_type, entity_words
   else:
     if model_type == 'base':
-      test_dataset = load_data(dataset_dir, model_type)
+      test_dataset = load_data(dataset_dir, model_type, discrip)
       test_label = list(map(int,test_dataset['label'].values))
       # tokenizing dataset
       tokenized_test = tokenized_dataset(test_dataset, tokenizer)
       return test_dataset['id'], tokenized_test, test_label
   
-    elif model_type == 'entity_special':
-      test_dataset = load_data(dataset_dir, model_type)
-      test_label = list(map(int,test_dataset['label'].values))
-      # tokenizing dataset
-      tokenized_test, entity_type = special_tokenized_dataset(test_dataset, tokenizer)
-      return test_dataset['id'], tokenized_test, test_label, entity_type
+  elif model_type == 'entity_special':
+    test_dataset = load_data(dataset_dir, model_type, discrip)
+    test_label = list(map(int,test_dataset['label'].values))
+    # tokenizing dataset
+    tokenized_test, entity_type = special_tokenized_dataset(test_dataset, tokenizer)
+    return test_dataset['id'], tokenized_test, test_label, entity_type
   
-    elif model_type == 'entity_punct':
-      test_dataset = load_data(dataset_dir, model_type)
-      test_label = list(map(int,test_dataset['label'].values))
-      # tokenizing dataset
-      tokenized_test, entity_type = punct_tokenized_dataset(test_dataset, tokenizer)
-      return test_dataset['id'], tokenized_test, test_label
+  elif model_type == 'entity_punct' or model_type == 'new_entity_punct':
+    test_dataset = load_data(dataset_dir, model_type, discrip)
+    test_label = list(map(int,test_dataset['label'].values))
+    # tokenizing dataset
+    tokenized_test = punct_tokenized_dataset(test_dataset, tokenizer)
+    return test_dataset['id'], tokenized_test, test_label
 
 def main(CFG):
   """
@@ -129,13 +132,13 @@ def main(CFG):
     state_dict = torch.load(f'{MODEL_NAME}/pytorch_model.bin')
     model.load_state_dict(state_dict)
 
-    test_id, test_dataset, test_label, entity_type, entity_words = load_test_dataset(test_dataset_dir, tokenizer, CFG['MODEL_TYPE'], do_sequentialdoublebert=CFG['DO_SEQUENTIALBERTMODEL'])
+    test_id, test_dataset, test_label, entity_type, entity_words = load_test_dataset(test_dataset_dir, tokenizer, CFG['MODEL_TYPE'], CFG['DISCRIP'], do_sequentialdoublebert=CFG['DO_SEQUENTIALBERTMODEL'])
     RE_test_dataset = RE_sequential_doublebert_Dataset(test_dataset, test_label, entity_type, entity_words)
   else:
     if CFG['MODEL_TYPE'] == 'base':
       model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME)
     
-      test_id, test_dataset, test_label = load_test_dataset(test_dataset_dir, tokenizer, CFG['MODEL_TYPE'])
+      test_id, test_dataset, test_label = load_test_dataset(test_dataset_dir, tokenizer, CFG['MODEL_TYPE'], CFG['DISCRIP'])
       Re_test_dataset = RE_Dataset(test_dataset ,test_label)
     
     elif CFG['MODEL_TYPE'] == 'entity_special':       
@@ -143,15 +146,15 @@ def main(CFG):
       state_dict = torch.load(f'{MODEL_NAME}/pytorch_model.bin')
       model.load_state_dict(state_dict)
     
-      test_id, test_dataset, test_label, entity_type = load_test_dataset(test_dataset_dir, tokenizer, CFG['MODEL_TYPE'])
+      test_id, test_dataset, test_label, entity_type = load_test_dataset(test_dataset_dir, tokenizer, CFG['MODEL_TYPE'], CFG['DISCRIP'])
       Re_test_dataset = RE_special_Dataset(test_dataset ,test_label, entity_type)
   
-    elif CFG['MODEL_TYPE'] == 'entity_punct':
+    elif CFG['MODEL_TYPE'] == 'entity_punct' or CFG['MODEL_TYPE'] == 'new_entity_punct':
       model = SepecialPunctBERT(Tokenizer_NAME, model_config, tokenizer)
       state_dict = torch.load(f'{MODEL_NAME}/pytorch_model.bin')
       model.load_state_dict(state_dict)
     
-      test_id, test_dataset, test_label = load_test_dataset(test_dataset_dir, tokenizer, CFG['MODEL_TYPE'])
+      test_id, test_dataset, test_label = load_test_dataset(test_dataset_dir, tokenizer, CFG['MODEL_TYPE'], CFG['DISCRIP'])
       Re_test_dataset = RE_Dataset(test_dataset ,test_label)
 
   model.to(device)

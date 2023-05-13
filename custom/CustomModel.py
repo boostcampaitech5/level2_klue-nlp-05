@@ -25,6 +25,11 @@ class SepecialEntityBERT(BertPreTrainedModel):
         token_ids = tokenizer.convert_tokens_to_ids(obj_tokens)
         self.obj_entity_token = dict(zip(obj_tokens, token_ids))
         
+        '''
+        token_ids = tokenizer.convert_tokens_to_ids(['[SS]', '[SE]', '[OS]', '[OE]'])
+        self.sub_start, self.sub_end, self.obj_start, self.obj_end = token_ids[0], token_ids[1], token_ids[2], token_ids[3]
+        '''
+        
         # 이 classifier는 각 entity special token 마다 적용된다.
         self.classifier = torch.nn.Sequential(
             self.model.pooler, # hidden_size -> hidden_size
@@ -36,9 +41,17 @@ class SepecialEntityBERT(BertPreTrainedModel):
         # 각 classifier layer를 통과한 hidden state를 가중합하고 그 가중치를 학습시킨다.
         self.weight_parameter = torch.nn.Parameter(torch.tensor([[[0.25]], [[0.25]], [[0.25]], [[0.25]]]))
         
-    def forward(self, input_ids, attention_mask=None, token_type_ids=None, labels=None, subject_type=None, object_type=None):
-        outputs = self.model(input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
-        special_outputs = outputs.last_hidden_state
+        '''
+        self.classifier = torch.nn.Sequential(
+            torch.nn.Linear(in_features=4*config.hidden_size, out_features=4*config.hidden_size, bias=True),
+            torch.nn.Dropout(p=0.1),
+            torch.nn.Linear(in_features=4*config.hidden_size, out_features=config.num_labels, bias=True),
+            )
+        '''
+        
+    def forward(self, input_ids, attention_mask=None, token_type_ids=None, labels=None, subject_type=None, object_type=None, output_attentions=False):
+        outputs = self.model(input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids, output_attentions=output_attentions)
+        special_outputs = outputs.last_hidden_state # batch, seqlen, hidden_size
                         
         batch_size = len(input_ids)
         
@@ -46,6 +59,7 @@ class SepecialEntityBERT(BertPreTrainedModel):
         
         # entity type을 forward에서  안 받고, 그냥 문장 내에서 special token을 찾는 방법도 써보았으나, 학습시간이 거의 2배로 증가한다.
         for i in range(batch_size):
+            
             sub_start, sub_end = self.sub_entity_token[f'[S:{subject_type[i]}]'], self.sub_entity_token[f'[/S:{subject_type[i]}]']
             obj_start, obj_end = self.obj_entity_token[f'[O:{object_type[i]}]'], self.obj_entity_token[f'[/O:{object_type[i]}]']
             
@@ -56,21 +70,31 @@ class SepecialEntityBERT(BertPreTrainedModel):
             
             special_idx.append([sub_start_idx, sub_end_idx, obj_start_idx, obj_end_idx])
         
+        '''
+        pooled_output = torch.stack([special_outputs[i, special_idx[i], :].view(-1, 4*self.config.hidden_size).squeeze() for i in range(batch_size)], dim=0) # batch, 4*hidden_size
+        
+        logits = self.classifier(pooled_output) # batch, num_labels
+        
+        '''
         # (batch_size, hidden_size) 가 4개인 list
         pooled_output = [torch.stack([special_outputs[i, special_idx[i][j], :] for i in range(batch_size)]) for j in range(4)]
 
         logits = torch.stack([self.special_classifier[i](pooled_output[i].unsqueeze(1)) for i in range(4)], dim=0) # (4, batch, num_label)
         logits = torch.sum(self.weight_parameter*logits, dim=0) # (batch_size, num_label)
         
-        outputs = (logits,) + outputs[2:]
+        loss = None
         
         if labels is not None: # 실제로 inference에서 label은 None이 아니라 100이지만 그냥 return 할 때, 필요하므로 냅두었다.
             loss_fun = torch.nn.CrossEntropyLoss()
             loss = loss_fun(logits.view(-1, self.config.num_labels), labels.view(-1))
-            
-            outputs = (loss,) + outputs
         
-        return outputs # (loss), logits, (hidden_states), (attentions)                
+        # attention 은 num_layer * (batch_size, num_attention_head, sequence_length, sequence_length)
+        if output_attentions:    
+            outputs = {"loss" : loss, "logits": logits, "attentions": outputs.attentions[0]}
+        else:
+            outputs = {"loss" : loss, "logits": logits}
+        
+        return outputs # (loss), logits, (attentions)               
         
 class SepecialPunctBERT(BertPreTrainedModel):
     def __init__(self, model_name, config, tokenizer):
@@ -85,6 +109,7 @@ class SepecialPunctBERT(BertPreTrainedModel):
         ids = tokenizer.convert_tokens_to_ids(['@', '#'])
         self.sub_ids, self.obj_ids = ids[0], ids[1]
         
+        
         # 이 classifier는 각 entity special token 마다 적용된다.
         self.classifier = torch.nn.Sequential(
             self.model.pooler, # hidden_size -> hidden_size
@@ -96,8 +121,21 @@ class SepecialPunctBERT(BertPreTrainedModel):
         # 각 classifier layer를 통과한 hidden state를 가중합하고 그 가중치를 학습시킨다.
         self.weight_parameter = torch.nn.Parameter(torch.tensor([[[0.5]], [[0.5]]]))
         
-    def forward(self, input_ids, attention_mask=None, token_type_ids=None, labels=None):
-        outputs = self.model(input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
+        '''
+        self.special_classifier = torch.nn.ModuleList([deepcopy(self.classifier) for _ in range(4)])
+        # 각 classifier layer를 통과한 hidden state를 가중합하고 그 가중치를 학습시킨다.
+        self.weight_parameter = torch.nn.Parameter(torch.tensor([[[0.25]], [[0.25]], [[0.25]], [[0.25]]]))
+        '''
+        '''
+        self.classifier = torch.nn.Sequential(
+            torch.nn.Linear(in_features=2*config.hidden_size, out_features=2*config.hidden_size, bias=True),
+            torch.nn.Dropout(p=0.1),
+            torch.nn.Linear(in_features=2*config.hidden_size, out_features=config.num_labels, bias=True),
+            )
+        '''
+        
+    def forward(self, input_ids, attention_mask=None, token_type_ids=None, labels=None, output_attentions=False):
+        outputs = self.model(input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids, output_attentions=output_attentions)
         special_outputs = outputs.last_hidden_state
                         
         batch_size = len(input_ids)
@@ -108,9 +146,18 @@ class SepecialPunctBERT(BertPreTrainedModel):
         for i in range(batch_size):
             
             sub_start_idx = torch.nonzero(input_ids[i] == self.sub_ids)[0][0] # entity type에 맞는 special token의 index
+            # sub_end_idx = torch.nonzero(input_ids[i] == self.sub_ids)[1][0]
             obj_start_idx = torch.nonzero(input_ids[i] == self.obj_ids)[0][0]
+            # obj_end_idx = torch.nonzero(input_ids[i] == self.obj_ids)[1][0]
             
             special_idx.append([sub_start_idx, obj_start_idx])
+            # special_idx.append([sub_start_idx, sub_end_idx, obj_start_idx, obj_end_idx])
+        
+        '''
+        pooled_output = torch.stack([special_outputs[i, special_idx[i], :].view(-1, 2*self.config.hidden_size).squeeze() for i in range(batch_size)], dim=0) # batch, 2*hidden_size
+        
+        logits = self.classifier(pooled_output) # batch, num_labels
+        '''
         
         # (batch_size, hidden_size) 가 2개인 list
         pooled_output = [torch.stack([special_outputs[i, special_idx[i][j], :] for i in range(batch_size)]) for j in range(2)]
@@ -118,15 +165,26 @@ class SepecialPunctBERT(BertPreTrainedModel):
         logits = torch.stack([self.special_classifier[i](pooled_output[i].unsqueeze(1)) for i in range(2)], dim=0) # (2, batch, num_label)
         logits = torch.sum(self.weight_parameter*logits, dim=0) # (batch_size, num_label)
         
-        outputs = (logits,) + outputs[2:]
+        '''
+        pooled_output = [torch.stack([special_outputs[i, special_idx[i][j], :] for i in range(batch_size)]) for j in range(4)]
+
+        logits = torch.stack([self.special_classifier[i](pooled_output[i].unsqueeze(1)) for i in range(4)], dim=0) # (4, batch, num_label)
+        logits = torch.sum(self.weight_parameter*logits, dim=0) # (batch_size, num_label)
+        '''
+        
+        loss = None
         
         if labels is not None:
             loss_fun = torch.nn.CrossEntropyLoss()
             loss = loss_fun(logits.view(-1, self.config.num_labels), labels.view(-1))
-            
-            outputs = (loss,) + outputs
         
-        return outputs # (loss), logits, (hidden_states), (attentions)
+        # attention 은 num_layer * (batch_size, num_attention_head, sequence_length, sequence_length)    
+        if output_attentions:    
+            outputs = {"loss" : loss, "logits": logits, "attentions": outputs.attentions[0]}
+        else:
+            outputs = {"loss" : loss, "logits": logits}
+        
+        return outputs # (loss), logits, (attentions)
     
 class SequentialDoubleBERT(BertPreTrainedModel):
     def __init__(self, model_name, config, tokenizer, model_type, device):
