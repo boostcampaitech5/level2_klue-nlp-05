@@ -115,7 +115,7 @@ class SepecialPunctBERT(BertPreTrainedModel):
             torch.nn.Dropout(p=0.1),
             torch.nn.Linear(in_features=config.hidden_size, out_features=config.num_labels , bias=True)
         )
-        '''
+        
         self.special_classifier = torch.nn.ModuleList([deepcopy(self.classifier) for _ in range(2)])
         # 각 classifier layer를 통과한 hidden state를 가중합하고 그 가중치를 학습시킨다.
         self.weight_parameter = torch.nn.Parameter(torch.tensor([[[0.5]], [[0.5]]]))
@@ -124,7 +124,7 @@ class SepecialPunctBERT(BertPreTrainedModel):
         self.special_classifier = torch.nn.ModuleList([deepcopy(self.classifier) for _ in range(4)])
         # 각 classifier layer를 통과한 hidden state를 가중합하고 그 가중치를 학습시킨다.
         self.weight_parameter = torch.nn.Parameter(torch.tensor([[[0.25]], [[0.25]], [[0.25]], [[0.25]]]))
-        
+        '''
         '''
         self.classifier = torch.nn.Sequential(
             torch.nn.Linear(in_features=2*config.hidden_size, out_features=2*config.hidden_size, bias=True),
@@ -145,19 +145,19 @@ class SepecialPunctBERT(BertPreTrainedModel):
         for i in range(batch_size):
             
             sub_start_idx = torch.nonzero(input_ids[i] == self.sub_ids)[0][0] # entity type에 맞는 special token의 index
-            sub_end_idx = torch.nonzero(input_ids[i] == self.sub_ids)[1][0]
+            # sub_end_idx = torch.nonzero(input_ids[i] == self.sub_ids)[1][0]
             obj_start_idx = torch.nonzero(input_ids[i] == self.obj_ids)[0][0]
-            obj_end_idx = torch.nonzero(input_ids[i] == self.obj_ids)[1][0]
+            # obj_end_idx = torch.nonzero(input_ids[i] == self.obj_ids)[1][0]
             
-            #special_idx.append([sub_start_idx, obj_start_idx])
-            special_idx.append([sub_start_idx, sub_end_idx, obj_start_idx, obj_end_idx])
+            special_idx.append([sub_start_idx, obj_start_idx])
+            # special_idx.append([sub_start_idx, sub_end_idx, obj_start_idx, obj_end_idx])
         
         '''
         pooled_output = torch.stack([special_outputs[i, special_idx[i], :].view(-1, 2*self.config.hidden_size).squeeze() for i in range(batch_size)], dim=0) # batch, 2*hidden_size
         
         logits = self.classifier(pooled_output) # batch, num_labels
         '''
-        '''
+        
         # (batch_size, hidden_size) 가 2개인 list
         pooled_output = [torch.stack([special_outputs[i, special_idx[i][j], :] for i in range(batch_size)]) for j in range(2)]
 
@@ -169,7 +169,7 @@ class SepecialPunctBERT(BertPreTrainedModel):
 
         logits = torch.stack([self.special_classifier[i](pooled_output[i].unsqueeze(1)) for i in range(4)], dim=0) # (4, batch, num_label)
         logits = torch.sum(self.weight_parameter*logits, dim=0) # (batch_size, num_label)
-        
+        '''
         
         loss = None
         
