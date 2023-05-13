@@ -129,7 +129,7 @@ def main(CFG):
     state_dict = torch.load(f'{MODEL_NAME}/pytorch_model.bin')
     model.load_state_dict(state_dict)
     
-    test_id, test_dataset, test_label = load_test_dataset(test_dataset_dir, tokenizer, CFG['MODEL_TYPE'], CFG['DISCIRP'])
+    test_id, test_dataset, test_label = load_test_dataset(test_dataset_dir, tokenizer, CFG['MODEL_TYPE'], CFG['DISCRIP'])
     Re_test_dataset = RE_Dataset(test_dataset ,test_label)
 
   model.to(device)

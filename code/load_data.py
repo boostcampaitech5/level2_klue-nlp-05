@@ -86,6 +86,9 @@ def special_preprocessing_dataset(dataset, discrip):
     sub_start, sub_end = f'[S:{sub_type}]', f'[/S:{sub_type}]'
     obj_start, obj_end = f'[O:{obj_type}]', f'[/O:{obj_type}]'
     sub_word, obj_word = f" \'{sub_entity['word']}\' ", f" \'{obj_entity['word']}\' "
+    
+    #sub_start, sub_end, obj_start, obj_end = '[SS]', '[SE]', '[OS]', '[OE]'
+    
 
     if sub_idx[0] < obj_idx[0]:
       sentence = (sentence[:sub_idx[0]] + sub_start + sub_word + sub_end 
@@ -95,6 +98,7 @@ def special_preprocessing_dataset(dataset, discrip):
       sentence = (sentence[:obj_idx[0]] + obj_start + obj_word + obj_end 
                   + sentence[obj_idx[1]+1:sub_idx[0]] + sub_start + sub_word
                   + sub_end + sentence[sub_idx[1]+1:])
+      
     if discrip:
       sentence = add_discription(sentence, sub_word, obj_word, f" \'{obj_type}\' ")
       
@@ -151,7 +155,7 @@ def new_punct_preprocessing_dataset(dataset, discrip):
       sentence = (sentence[:obj_idx[0]] + f'#{obj_word}(객체 {obj_type_dict[obj_type]}) #' + sentence[obj_idx[1]+1:sub_idx[0]]
                   + f'@{sub_word}(주체 {sub_type_dict[sub_type]}) @' + sentence[sub_idx[1]+1:])
     # "영화 '기생충'이 제92회 아카데미 시상식에서 4관왕의 영광을 안은 가운데, 한국계 # '캐나다' (객체 장소) # 배우 @ '산드라 오' (주체 인물) @가 '기생충' 수상에 보인 반응이 화제다."
-  
+    
     if discrip:
       sentence = add_discription(sentence, sub_word, obj_word, f" \'{obj_type}\' ")
       
