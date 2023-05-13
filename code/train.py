@@ -194,7 +194,7 @@ def train():
     )
   # trainer = Trainer(
   trainer = CustomTrainer(
-    loss_fn=None,
+    loss_fn=CFG['LOSS_FN'],
     model=model,                         # the instantiated 🤗 Transformers model to be trained
     args=training_args,                  # training arguments, defined above
     train_dataset=RE_train_dataset,         # training dataset
