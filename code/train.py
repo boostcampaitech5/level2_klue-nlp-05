@@ -109,7 +109,7 @@ def train():
 
   device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-  print(device)
+  print(device, '!!!!!!!')
   # setting model hyperparameter
   model_config = AutoConfig.from_pretrained(MODEL_NAME)
   model_config.num_labels = 30
@@ -150,9 +150,9 @@ def train():
 
       data_collator = CustomDataCollator(tokenizer)
 
-  elif CFG['MODEL_TYPE'] == 'entity_punct' or CFG['MODEL_TYPE'] == 'new_entity_punct':
-    tokenized_train = punct_tokenized_dataset(train_dataset, tokenizer)
-    tokenized_dev = punct_tokenized_dataset(dev_dataset, tokenizer)
+    elif CFG['MODEL_TYPE'] == 'entity_punct' or CFG['MODEL_TYPE'] == 'new_entity_punct':
+      tokenized_train = punct_tokenized_dataset(train_dataset, tokenizer)
+      tokenized_dev = punct_tokenized_dataset(dev_dataset, tokenizer)
 
       RE_train_dataset = RE_Dataset(tokenized_train, train_label)
       RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
@@ -161,7 +161,6 @@ def train():
 
       data_collator = DataCollatorWithPadding(tokenizer)
 
-  print(model.config)
   model.parameters
   model.to(device)
 
@@ -253,5 +252,4 @@ if __name__ == '__main__':
     sweep_id = wandb.sweep(sweep=sweep_configuration, project=CFG['WANDB_PROJECT'])
     wandb.agent(sweep_id=sweep_id, function=main, count=CFG['SWEEP_COUNT'])
 
-  
   main()

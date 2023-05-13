@@ -79,8 +79,8 @@ def sequentialdoublebert_preprocessing_dataset(dataset, model_type):
     subject_type.append(sub_type)
     object_type.append(obj_type)
       
+    sub_idx, obj_idx = [sub_entity['start_idx'], sub_entity['end_idx']], [obj_entity['start_idx'], obj_entity['end_idx']]
     if model_type == 'entity_special':
-      sub_idx, obj_idx = [sub_entity['start_idx'], sub_entity['end_idx']], [obj_entity['start_idx'], obj_entity['end_idx']]
       sub_start, sub_end = f'[S:{sub_type}] ', f' [/S:{sub_type}]'
       obj_start, obj_end = f'[O:{obj_type}] ', f' [/O:{obj_type}]'
 
@@ -265,7 +265,7 @@ def load_data(dataset_dir, model_type, discrip, do_sequentialdoublebert=0):
 def tokenized_dataset(dataset, tokenizer):
   """ tokenizer에 따라 sentence를 tokenizing 합니다."""
   concat_entity = []
-  for e01, e02 in zip(dataset['subject_words'], dataset['object_words']):
+  for e01, e02 in zip(dataset['subject_entity'], dataset['object_entity']):
     temp = ''
     temp = e01 + '[SEP]' + e02
     concat_entity.append(temp)

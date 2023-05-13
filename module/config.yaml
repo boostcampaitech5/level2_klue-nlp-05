@@ -10,16 +10,16 @@ LOGGING_DIR: "./logs"
 MODEL_SAVE_DIR: "./best_model"
 
 # MODEL (확인 필수)
-MODEL_NAME: "klue/roberta-large"
+MODEL_NAME: "klue/roberta-small"
 TOTAL_SAVE_MODEL: 5
 
 # LOSS (확인 필수)
-LOSS_FN: 'focal' # 'base', 'focal', 'label_smoothing'
+LOSS_FN: 'label_smoothing' # 'base', 'focal', 'label_smoothing'
 
 # HYPER PARAMETER (확인 필수)
 MAX_EPOCH: 3
 LR: 2.0e-5 # Example Format : 5.0e-5 / 5.e-5 / 5.E-5
-BATCH_SIZE: 32
+BATCH_SIZE: 64
 WARMUP_STEP: 400
 RATIO: 0.15 # Train Validation Split ratio
 WEIGHT_DECAY: 0.1
@@ -31,8 +31,8 @@ EVAL_STEP: 500
 STRATEGY: "steps" ### 추가부분
 
 # WANDB (확인 필수)
-WANDB_PROJECT: "new_klue_roberta-large"
-WANDB_NAME: "batch=32_lr=5e-5_epoch=3_entity_punct_discrip:_voting_dev=0.15_decay=0.1_seed=14"
+WANDB_PROJECT: "merge_test"
+WANDB_NAME: "test"
 
 # WANDB SWEEP (확인 필수 및 양식 확인(들여쓰기))
 SWEEP_AVAILABLE: 0 # SWEEP을 사용할 것인지 (1 : 사용, 0 : 미사용)
@@ -62,6 +62,6 @@ SWEEP_CONFIGURATION: # SWEEP 세부 내용 설정
       - 5.0e-5
 
 # Custom Model (확인 필수)
-MODEL_TYPE: 'base' # 'base', 'entity_special', 'entity_punct'
-DO_SEQUENTIALBERTMODEL: 0 # SequentialBertModel 사용 여부 (0 : 미사용, 1 : 사용)
-DISCRIP: 1
+MODEL_TYPE: 'entity_punct' # 'base', 'entity_special', 'entity_punct'
+DO_SEQUENTIALBERTMODEL: 1 # SequentialBertModel 사용 여부 (0 : 미사용, 1 : 사용)
+DISCRIP: 0

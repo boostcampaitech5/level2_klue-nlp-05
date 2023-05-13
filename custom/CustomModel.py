@@ -94,7 +94,7 @@ class SepecialEntityBERT(BertPreTrainedModel):
         else:
             outputs = {"loss" : loss, "logits": logits}
         
-        return outputs # (loss), logits, (attentions)               
+        return outputs # (loss), logits, (attentions)
         
 class SepecialPunctBERT(BertPreTrainedModel):
     def __init__(self, model_name, config, tokenizer):
@@ -239,7 +239,7 @@ class SequentialDoubleBERT(BertPreTrainedModel):
 
             self.net = torch.nn.Sequential(
                 torch.nn.Dropout(p=0.1),
-                torch.nn.Linear(in_features=config.hidden_size, out_features=config.hidden_size , bias=True),
+                torch.nn.Linear(in_features=config.hidden_size, out_features=config.hidden_size, bias=True),
                 torch.nn.ReLU()
             )
 
@@ -285,22 +285,19 @@ class SequentialDoubleBERT(BertPreTrainedModel):
             tmp_binary_labels = torch.tensor(tmp_binary_labels).view(batch_size, -1).to(self.dv)
 
             outputs2 = self.plm2(new_input_ids, attention_mask=new_attention_mask, token_type_ids=new_token_type_ids)
-            logits2 = outputs2['logits']
-
-            outputs = (logits2,) + outputs2[2:]
+            outputs = outputs2['logits']
 
             if labels is not None:
                 loss_fun1 = torch.nn.BCELoss()
                 loss_fun2 = torch.nn.CrossEntropyLoss()
                 
                 loss1 = loss_fun1(torch.argmax(logits1.view(-1, self.model_config1.num_labels), dim=1).float(), tmp_binary_labels.view(-1).float())
-                loss2 = loss_fun2(logits2.view(-1, self.model_config2.num_labels), labels.view(-1))
-
+                loss2 = loss_fun2(outputs.view(-1, self.model_config2.num_labels), labels.view(-1))
                 loss = loss1 + loss2
-            
-                outputs = (loss,) + outputs
-
+                
+                outputs = {'loss': loss, 'logits': outputs}
             return outputs
+        
         elif self.model_type == 'entity_special':
             outputs1 = self.plm1(input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
             logits1 = outputs1['logits']
@@ -350,25 +347,24 @@ class SequentialDoubleBERT(BertPreTrainedModel):
 
                 special_hs_list.append(hidden_states[i][sub_start_cond+obj_start_cond+sub_end_cond+obj_end_cond].view(-1, hidden_size))
 
-            special_hs = torch.stack(special_hs_list, dim=0).view(batch_size, -1).to(self.dv)
+            special_hs = torch.stack(special_hs_list, dim=0).view(batch_size, -1, hidden_size).to(self.dv)
 
             logits2 = self.net(special_hs).view(batch_size, -1)
             logits2 = self.classifier(logits2)
 
-            outputs = (logits2,) + outputs2[2:]
+            outputs = logits2
 
             if labels is not None:
                 loss_fun1 = torch.nn.BCELoss()
                 loss_fun2 = torch.nn.CrossEntropyLoss()
                 
                 loss1 = loss_fun1(torch.argmax(logits1.view(-1, self.model_config1.num_labels), dim=1).float(), tmp_binary_labels.view(-1).float())
-                loss2 = loss_fun2(logits2.view(-1, self.model_config2.num_labels), labels.view(-1))
-
+                loss2 = loss_fun2(outputs.view(-1, self.model_config2.num_labels), labels.view(-1))
                 loss = loss1 + loss2
             
-                outputs = (loss,) + outputs
-
-            return outputs 
+                outputs = {'loss': loss, 'logits': outputs}
+            return outputs
+        
         elif self.model_type == 'entity_punct':
             outputs1 = self.plm1(input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
             logits1 = outputs1['logits']
@@ -408,30 +404,25 @@ class SequentialDoubleBERT(BertPreTrainedModel):
             special_hs_list = list()
  
             for i in range(batch_size):
-                sub_start, sub_end = self.sub_entity_token[f'[S:{subject_type[i]}]'], self.sub_entity_token[f'[/S:{subject_type[i]}]']
-                obj_start, obj_end = self.obj_entity_token[f'[O:{object_type[i]}]'], self.obj_entity_token[f'[/O:{object_type[i]}]']
-
                 sub_start_cond = (new_input_ids[i] == self.sub_ids).bool()
                 obj_start_cond = (new_input_ids[i] == self.obj_ids).bool()
 
                 special_hs_list.append(hidden_states[i][sub_start_cond+obj_start_cond].view(-1, hidden_size))
 
-            special_hs = torch.stack(special_hs_list, dim=0)
+            special_hs = torch.stack(special_hs_list, dim=0)#.view(batch_size, -1, hidden_size).to(self.dv)
 
             logits2 = self.net(special_hs).view(batch_size, -1)
             logits2 = self.classifier(logits2)
 
-            outputs = (logits2,) + outputs2[2:]
+            outputs = logits2
 
             if labels is not None:
                 loss_fun1 = torch.nn.BCELoss()
                 loss_fun2 = torch.nn.CrossEntropyLoss()
                 
                 loss1 = loss_fun1(torch.argmax(logits1.view(-1, self.model_config1.num_labels), dim=1).float(), tmp_binary_labels.view(-1).float())
-                loss2 = loss_fun2(logits2.view(-1, self.model_config2.num_labels), labels.view(-1))
-
+                loss2 = loss_fun2(outputs.view(-1, self.model_config2.num_labels), labels.view(-1))
                 loss = loss1 + loss2
             
-                outputs = (loss,) + outputs
-
-            return outputs 
+                outputs = {'loss': loss, 'logits': outputs}
+            return outputs

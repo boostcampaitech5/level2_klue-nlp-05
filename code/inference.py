@@ -55,7 +55,9 @@ def inference(model, tokenized_sent, device, model_type, do_sequentialdoublebert
             attention_mask=data['attention_mask'].to(device),
             token_type_ids=data['token_type_ids'].to(device)
             )
-    if model_type == 'base':
+    if do_sequentialdoublebert:
+      logits = outputs
+    elif model_type == 'base':
       logits = outputs[0]
     else:
       logits = outputs['logits']
