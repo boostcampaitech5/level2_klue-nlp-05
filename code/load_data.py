@@ -2,6 +2,7 @@ import pickle as pickle
 import os
 import pandas as pd
 import torch
+import hanja
 
 class RE_Dataset(torch.utils.data.Dataset):
   """ Dataset 구성을 위한 class."""
@@ -37,19 +38,27 @@ class RE_special_Dataset(torch.utils.data.Dataset):
 
 def preprocessing_dataset(dataset):
   """ 처음 불러온 csv 파일을 원하는 형태의 DataFrame으로 변경 시켜줍니다."""
+  sentences = []
   subject_words = []
   object_words = []
 
-  for sub_entity, obj_entity in zip(dataset['subject_entity'], dataset['object_entity']):
+  for sub_entity, obj_entity, sentence in zip(dataset['subject_entity'], dataset['object_entity'], dataset['sentence']):
     sub_word = eval(sub_entity)['word']
     obj_word = eval(obj_entity)['word']
     sub_word = f'\' {sub_word} \''
     obj_word = f'\' {obj_word} \''
+    
+    # 한자 -> 한글
+    sub_word = hanja.translate(sub_word, 'substitution')
+    obj_word = hanja.translate(obj_word, 'substitution')
+    sentence = hanja.translate(sentence, 'substitution')
 
     subject_words.append(sub_word)
     object_words.append(obj_word)
+    sentences.append(sentence)
 
-  out_dataset = pd.DataFrame({'id':dataset['id'], 'sentence':dataset['sentence'], 'subject_entity':subject_words, 'object_entity':object_words, 'label':dataset['label'],})
+  out_dataset = pd.DataFrame({'id':dataset['id'], 'sentence':sentences, 'subject_entity':subject_words, 'object_entity':object_words, 'label':dataset['label'],})
+  
   return out_dataset
 
 def special_preprocessing_dataset(dataset):
@@ -77,10 +86,14 @@ def special_preprocessing_dataset(dataset):
       sentence = (sentence[:obj_idx[0]] + obj_start + obj_entity['word'] + obj_end 
                   + sentence[obj_idx[1]+1:sub_idx[0]] + sub_start + sub_entity['word']
                   + sub_end + sentence[sub_idx[1]+1:])
-      
+    
+    # 한자 -> 한글
+    sentence = hanja.translate(sentence, 'substitution')
+    
     sentences.append(sentence)
 
   out_dataset = pd.DataFrame({'id':dataset['id'], 'sentence':sentences, 'label':dataset['label'], 'subject_type':subject_type, 'object_type':object_type})
+  
   return out_dataset 
 
 def punct_preprocessing_dataset(dataset):
@@ -102,7 +115,10 @@ def punct_preprocessing_dataset(dataset):
                   + sentence[obj_idx[1]+1:sub_idx[0]] + f'# ^ {sub_type} ^ ' + sub_entity['word']
                   + ' #' + sentence[sub_idx[1]+1:])
       # ex) 〈Something〉는 @ § PER § 조지 해리슨 @이 쓰고 # ^ ORG ^ 비틀즈 #가 1969년 앨범 《Abbey Road》에 담은 노래다
-      
+    
+    # 한자 -> 한글
+    sentence = hanja.translate(sentence, 'substitution')
+    
     sentences.append(sentence)
   
   out_dataset = pd.DataFrame({'id':dataset['id'], 'sentence':sentences, 'label':dataset['label'],})
