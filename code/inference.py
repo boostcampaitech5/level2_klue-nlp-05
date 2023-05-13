@@ -88,7 +88,7 @@ def load_test_dataset(dataset_dir, tokenizer, model_type, discrip):
     tokenized_test, entity_type = special_tokenized_dataset(test_dataset, tokenizer)
     return test_dataset['id'], tokenized_test, test_label, entity_type
   
-  elif model_type == 'entity_punct':
+  elif model_type == 'entity_punct' or model_type == 'new_entity_punct':
     test_dataset = load_data(dataset_dir, model_type, discrip)
     test_label = list(map(int,test_dataset['label'].values))
     # tokenizing dataset
@@ -124,14 +124,14 @@ def main(CFG):
     test_id, test_dataset, test_label, entity_type = load_test_dataset(test_dataset_dir, tokenizer, CFG['MODEL_TYPE'], CFG['DISCRIP'])
     Re_test_dataset = RE_special_Dataset(test_dataset ,test_label, entity_type)
   
-  elif CFG['MODEL_TYPE'] == 'entity_punct':
+  elif CFG['MODEL_TYPE'] == 'entity_punct' or CFG['MODEL_TYPE'] == 'new_entity_punct':
     model = SepecialPunctBERT(Tokenizer_NAME, model_config, tokenizer)
     state_dict = torch.load(f'{MODEL_NAME}/pytorch_model.bin')
     model.load_state_dict(state_dict)
     
     test_id, test_dataset, test_label = load_test_dataset(test_dataset_dir, tokenizer, CFG['MODEL_TYPE'], CFG['DISCRIP'])
     Re_test_dataset = RE_Dataset(test_dataset ,test_label)
-
+  
   model.to(device)
 
   ## predict answer
