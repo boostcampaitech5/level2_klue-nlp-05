@@ -109,7 +109,7 @@ def train():
 
   device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-  print(device, '!!!!!!!')
+  print(device)
   # setting model hyperparameter
   model_config = AutoConfig.from_pretrained(MODEL_NAME)
   model_config.num_labels = 30

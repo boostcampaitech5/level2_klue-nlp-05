@@ -244,7 +244,7 @@ class SequentialDoubleBERT(BertPreTrainedModel):
             )
 
             # 계산에 들어가는 punctuation token의 개수만큼 hidden_size에 곱해준다.
-            self.classifier = torch.nn.Linear(in_features=config.hidden_size*2, out_features=config.num_labels , bias=True)
+            self.classifier = torch.nn.Linear(in_features=config.hidden_size*4, out_features=config.num_labels , bias=True)
 
     def forward(self, input_ids, attention_mask=None, token_type_ids=None, labels=None, subject_type=None, object_type=None, subject_words=None, object_words=None):
         batch_size = len(input_ids)
