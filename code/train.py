@@ -95,12 +95,12 @@ def train():
   tokenizer = add_token(tokenizer, CFG['MODEL_TYPE'])
 
   if CFG['RATIO'] == 0.0:
-    train_dataset = load_data(CFG['TRAIN_PATH'], CFG['MODEL_TYPE'])
-    dev_dataset = load_data(CFG['DEV_PATH'], CFG['MODEL_TYPE'])
+    train_dataset = load_data(CFG['TRAIN_PATH'], CFG['MODEL_TYPE'], CFG['DO_SEQUENTIALBERTMODEL'])
+    dev_dataset = load_data(CFG['DEV_PATH'], CFG['MODEL_TYPE'], CFG['DO_SEQUENTIALBERTMODEL'])
   else:
     train_val_split(CFG['RATIO'])
-    train_dataset = load_data(CFG['SPLIT_TRAIN_PATH'], CFG['MODEL_TYPE'])
-    dev_dataset = load_data(CFG['SPLIT_DEV_PATH'], CFG['MODEL_TYPE'])
+    train_dataset = load_data(CFG['SPLIT_TRAIN_PATH'], CFG['MODEL_TYPE'], CFG['DO_SEQUENTIALBERTMODEL'])
+    dev_dataset = load_data(CFG['SPLIT_DEV_PATH'], CFG['MODEL_TYPE'], CFG['DO_SEQUENTIALBERTMODEL'])
 
   train_label = label_to_num(train_dataset['label'].values)
   dev_label = label_to_num(dev_dataset['label'].values)
@@ -112,40 +112,52 @@ def train():
   model_config = AutoConfig.from_pretrained(MODEL_NAME)
   model_config.num_labels = 30
   
-  if CFG['MODEL_TYPE'] == 'base':
-    # tokenizing dataset
-    tokenized_train = tokenized_dataset(train_dataset, tokenizer)
-    tokenized_dev = tokenized_dataset(dev_dataset, tokenizer)
+  if CFG['DO_SEQUENTIALBERTMODEL']:
+    tokenized_train, entity_type_train, entity_words_train = sequentialdoublebert_tokenized_dataset(train_dataset, tokenizer, CFG['MODEL_TYPE'])
+    tokenized_dev, entity_type_dev, entity_words_dev = sequentialdoublebert_tokenized_dataset(dev_dataset, tokenizer, CFG['MODEL_TYPE'])
 
-    # make dataset for pytorch.
-    RE_train_dataset = RE_Dataset(tokenized_train, train_label)
-    RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
+    RE_train_dataset = RE_sequential_doublebert_Dataset(tokenized_train, train_label, entity_type_train, entity_words_train)
+    RE_dev_dataset = RE_sequential_doublebert_Dataset(tokenized_dev, dev_label, entity_type_dev, entity_words_dev)
 
-    model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, config=model_config)
+    model = SequentialDoubleBERT(MODEL_NAME, config=model_config, tokenizer=tokenizer,
+                                 model_type=CFG['MODEL_TYPE'], device=device)
+    
+    data_collator = SequentialDoubleBertDataCollator(tokenizer)
+  else:
+    if CFG['MODEL_TYPE'] == 'base':
+      # tokenizing dataset
+      tokenized_train = tokenized_dataset(train_dataset, tokenizer)
+      tokenized_dev = tokenized_dataset(dev_dataset, tokenizer)
 
-    data_collator = DataCollatorWithPadding(tokenizer)
+      # make dataset for pytorch.
+      RE_train_dataset = RE_Dataset(tokenized_train, train_label)
+      RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
 
-  elif CFG['MODEL_TYPE'] == 'entity_special':
-    tokenized_train, entity_type_train = special_tokenized_dataset(train_dataset, tokenizer)
-    tokenized_dev, entity_type_dev = special_tokenized_dataset(dev_dataset, tokenizer)
+      model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, config=model_config)
 
-    RE_train_dataset = RE_special_Dataset(tokenized_train, train_label, entity_type_train)
-    RE_dev_dataset = RE_special_Dataset(tokenized_dev, dev_label, entity_type_dev)
+      data_collator = DataCollatorWithPadding(tokenizer)
 
-    model = SepecialEntityBERT(MODEL_NAME, config=model_config, tokenizer=tokenizer)
+    elif CFG['MODEL_TYPE'] == 'entity_special':
+      tokenized_train, entity_type_train = special_tokenized_dataset(train_dataset, tokenizer)
+      tokenized_dev, entity_type_dev = special_tokenized_dataset(dev_dataset, tokenizer)
 
-    data_collator = CustomDataCollator(tokenizer)
+      RE_train_dataset = RE_special_Dataset(tokenized_train, train_label, entity_type_train)
+      RE_dev_dataset = RE_special_Dataset(tokenized_dev, dev_label, entity_type_dev)
 
-  elif CFG['MODEL_TYPE'] == 'entity_punct':
-    tokenized_train = punct_tokenized_dataset(train_dataset, tokenizer)
-    tokenized_dev = punct_tokenized_dataset(dev_dataset, tokenizer)
+      model = SepecialEntityBERT(MODEL_NAME, config=model_config, tokenizer=tokenizer)
 
-    RE_train_dataset = RE_Dataset(tokenized_train, train_label)
-    RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
+      data_collator = CustomDataCollator(tokenizer)
 
-    model = SepecialPunctBERT(MODEL_NAME, config=model_config, tokenizer=tokenizer)
+    elif CFG['MODEL_TYPE'] == 'entity_punct':
+      tokenized_train = punct_tokenized_dataset(train_dataset, tokenizer)
+      tokenized_dev = punct_tokenized_dataset(dev_dataset, tokenizer)
 
-    data_collator = DataCollatorWithPadding(tokenizer)
+      RE_train_dataset = RE_Dataset(tokenized_train, train_label)
+      RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
+
+      model = SepecialPunctBERT(MODEL_NAME, config=model_config, tokenizer=tokenizer)
+
+      data_collator = DataCollatorWithPadding(tokenizer)
 
   print(model.config)
   model.parameters

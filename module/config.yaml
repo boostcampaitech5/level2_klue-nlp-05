@@ -3,6 +3,7 @@ TRAIN_PATH: "/opt/ml/dataset/train/train.csv"
 DEV_PATH: "/opt/ml/dataset/train/train.csv"
 SPLIT_TRAIN_PATH: "/opt/ml/dataset/save_split_dataset/train.csv"
 SPLIT_DEV_PATH: "/opt/ml/dataset/save_split_dataset/dev.csv"
+TEST_PATH: "/opt/ml/dataset/test/test_data.csv"
 
 OUTPUT_DIR: "./results"
 LOGGING_DIR: "./logs"
@@ -54,3 +55,4 @@ SWEEP_CONFIGURATION: # SWEEP 세부 내용 설정
 
 # Custom Model (확인 필수)
 MODEL_TYPE: 'base' # 'base', 'entity_special', 'entity_punct'
+DO_SEQUENTIALBERTMODEL: 0 # SequentialBertModel 사용 여부 (0 : 미사용, 1 : 사용)
