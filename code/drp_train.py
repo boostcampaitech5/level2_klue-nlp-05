@@ -14,8 +14,6 @@ import wandb
 import yaml
 
 from custom.DRPModel import *
-from custom.DRPdatacollator import *
-from custom.CustomTrainer import DRPCustomTrainer
 
 from module.seed_everything import seed_everything
 from module.train_val_split import train_val_split
@@ -125,8 +123,6 @@ def train():
   #dev_dataloader = DataLoader(RE_dev_dataset, batch_size=CFG['BATCH_SIZE'], shuffle=True)
                                 
   model = DRPBERT(MODEL_NAME, config=model_config, tokenizer=tokenizer)
-
-  data_collator = DRPDataCollator(tokenizer)
     
 
   print(model.config)
