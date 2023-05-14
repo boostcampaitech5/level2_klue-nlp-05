@@ -30,7 +30,7 @@ def inference(model, tokenized_sent, device, model_type):
   output_prob = []
   for i, data in enumerate(tqdm(dataloader)):
     with torch.no_grad():
-      if model_type == 'entity_special' or model_type == "cls_entity_special":
+      if model_type == 'entity_special' or model_type == "cls_entity_special" or model_type == "sangmin_entity_special":
         outputs = model(
           input_ids=data['input_ids'].to(device),
           attention_mask=data['attention_mask'].to(device),
@@ -137,6 +137,17 @@ def main(CFG):
     Re_test_dataset = RE_Dataset(test_dataset ,test_label)
   
   elif CFG["MODEL_TYPE"] == 'cls_entity_special' :
+    tokenizer = AutoTokenizer.from_pretrained(Tokenizer_NAME)
+    tokenizer = add_token_ver2(tokenizer)
+    model = CLS_SpecialEntityBERT(Tokenizer_NAME, model_config, tokenizer)
+
+    state_dict = torch.load(f"{MODEL_NAME}/pytorch_model.bin")
+    model.load_state_dict(state_dict)
+
+    test_id, test_dataset, test_label, entity_type = load_test_dataset(test_dataset_dir, tokenizer, CFG['MODEL_TYPE'])
+    Re_test_dataset = RE_special_Dataset(test_dataset ,test_label, entity_type)
+
+  elif CFG["MODEL_TYPE"] == 'sangmin_entity_special' :
     tokenizer = AutoTokenizer.from_pretrained(Tokenizer_NAME)
     tokenizer = add_token_ver2(tokenizer)
     model = CLS_SpecialEntityBERT(Tokenizer_NAME, model_config, tokenizer)
