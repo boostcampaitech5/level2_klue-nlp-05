@@ -141,9 +141,9 @@ def load_data(dataset_dir, model_type):
     dataset = special_preprocessing_dataset(pd_dataset)
   elif model_type == 'entity_punct':
     dataset = punct_preprocessing_dataset(pd_dataset)
-  elif model_type == 'cls_entity_special':
+  elif model_type == 'cls_entity_special' or model_type == "sangmin_entity_special":
     dataset = cls_special_preprocessing_dataset(pd_dataset)
-  else:
+  else :
     dataset = preprocessing_dataset(pd_dataset)
 
   return dataset
