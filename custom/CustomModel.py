@@ -198,3 +198,75 @@ class CLS_SpecialEntityBERT(BertPreTrainedModel) :
             real_output = (before_output,)
         
         return real_output
+
+class sangmin_SpecialEntityBERT(BertPreTrainedModel) :
+    def __init__(self, model_name, config, tokenizer):
+        super().__init__(config)
+
+        self.model = AutoModel.from_pretrained(model_name, output_hidden_states=True)
+        self.model.resize_token_embeddings(len(tokenizer))
+        
+        self.tokenizer = tokenizer
+        self.config = config
+
+        self.subj = tokenizer.convert_tokens_to_ids('[SUBJ]')
+        self.obj = tokenizer.convert_tokens_to_ids('[OBJ]')
+        
+        # 이 classifier는 각 entity special token 마다 적용된다.
+        self.pool_special_linear_block = torch.nn.Sequential(
+                torch.nn.Linear(
+                    4 * self.model.config.hidden_size, self.model.config.hidden_size
+                ),  # 5 for 1 [CLS], 2 [SUBJ], 2 [OBJ]
+                torch.nn.ReLU(),
+                torch.nn.Dropout(),
+                torch.nn.Linear(self.model.config.hidden_size, config.num_labels),
+            )
+    
+    def forward(self, input_ids, attention_mask=None, token_type_ids=None, labels=None, subject_type=None, object_type=None) :
+        # 이 형태로 들어오는 이유 : dataset이 __getitem__을 보면 딕셔너리 형태로 들어가니까 **kwargs 로 들어갈텐데,
+        # 그러니까 x가 들어오는것이 아니라 이런 형태로 넣어줘야 한다.
+        batch_size = len(input_ids)
+        output = self.model(input_ids = input_ids , attention_mask=attention_mask, 
+        token_type_ids=token_type_ids, output_hidden_states=True)
+        # output은 3가지의 output
+        # 0번째 : last hidden state > size (batch , sequence_length, hidden_size)
+        # 1번째 : pooler_output > CLS 토큰에 대한 정보가 담긴 tensor, size (batch, hidden_size)
+        # 2번째 : hidden states, 이 전 layer의 hidden state들의 리스트. shape > (batch, sequence_length, hidden_size)
+        # 첫 번째 요소는 last hidden state와 동일함
+
+        before_output = []
+        
+        for i in range(batch_size) :
+            ''' 마지막에 [subj], [obj] 토큰의 hidden state를 갖고오기 위해서 어떤 부분에 위치해 있는지 미리 찾기 '''
+            each_sentence = []
+            # each_sentence.append(output.last_hidden_state[i][0]) # CLS 
+
+            subj_idx = int((input_ids[i]==self.subj).nonzero())
+            #subj_idx = input_ids[i].find(subj) 
+            subj_type_idx = subj_idx + 1 # subject 유형
+            each_sentence.append(output.last_hidden_state[i][subj_idx]) # subj 
+            each_sentence.append(output.last_hidden_state[i][subj_type_idx]) # subj type
+
+            obj_idx = int((input_ids[i]==self.obj).nonzero())
+            #obj_idx = input_ids[i].find(obj)
+            obj_type_idx = obj_idx + 1
+            each_sentence.append(output.last_hidden_state[i][obj_idx]) # obj
+            each_sentence.append(output.last_hidden_state[i][obj_type_idx]) # obj type
+
+            before_input = torch.cat(each_sentence)
+            after_classifier = self.pool_special_linear_block(before_input)
+            before_output.append(after_classifier)
+
+        before_output = torch.stack(before_output) # tensor 화
+        # real_output = (befroe_output,) + output[2:] # 여기서 output[2:] 는 hidden_state들!
+        # bert 모델을 찾아보면 forward 하면 나와야 하는 값이
+        # # (masked_lm_loss), prediction_scores, (hidden_states), (attentions)
+
+        if labels is not None:
+            loss_fct = torch.nn.CrossEntropyLoss()
+            loss = loss_fct(before_output.view(-1, self.config.num_labels), labels.view(-1))
+            real_output = (loss,) + (before_output,)
+        else :
+            real_output = (before_output,)
+        
+        return real_output
