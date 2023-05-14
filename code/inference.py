@@ -100,20 +100,20 @@ def load_test_dataset(dataset_dir, tokenizer, model_type, discrip, do_sequential
       # tokenizing dataset
       tokenized_test = tokenized_dataset(test_dataset, tokenizer)
       return test_dataset['id'], tokenized_test, test_label
-  
-  elif model_type == 'entity_special':
-    test_dataset = load_data(dataset_dir, model_type, discrip)
-    test_label = list(map(int,test_dataset['label'].values))
-    # tokenizing dataset
-    tokenized_test, entity_type = special_tokenized_dataset(test_dataset, tokenizer)
-    return test_dataset['id'], tokenized_test, test_label, entity_type
-  
-  elif model_type == 'entity_punct' or model_type == 'new_entity_punct':
-    test_dataset = load_data(dataset_dir, model_type, discrip)
-    test_label = list(map(int,test_dataset['label'].values))
-    # tokenizing dataset
-    tokenized_test = punct_tokenized_dataset(test_dataset, tokenizer)
-    return test_dataset['id'], tokenized_test, test_label
+    
+    elif model_type == 'entity_special':
+      test_dataset = load_data(dataset_dir, model_type, discrip)
+      test_label = list(map(int,test_dataset['label'].values))
+      # tokenizing dataset
+      tokenized_test, entity_type = special_tokenized_dataset(test_dataset, tokenizer)
+      return test_dataset['id'], tokenized_test, test_label, entity_type
+    
+    elif model_type == 'entity_punct' or model_type == 'new_entity_punct':
+      test_dataset = load_data(dataset_dir, model_type, discrip)
+      test_label = list(map(int,test_dataset['label'].values))
+      # tokenizing dataset
+      tokenized_test = punct_tokenized_dataset(test_dataset, tokenizer)
+      return test_dataset['id'], tokenized_test, test_label
 
 def main(CFG):
   """
@@ -130,7 +130,7 @@ def main(CFG):
 
   if CFG['DO_SEQUENTIALBERTMODEL']:
     model = SequentialDoubleBERT(MODEL_NAME, config=model_config, tokenizer=tokenizer,
-                                 model_type=CFG['MODEL_TYPE'], device=device)
+                                model_type=CFG['MODEL_TYPE'], device=device)
     state_dict = torch.load(f'{MODEL_NAME}/pytorch_model.bin')
     model.load_state_dict(state_dict)
 
