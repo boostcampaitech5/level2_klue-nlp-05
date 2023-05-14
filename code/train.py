@@ -148,6 +148,16 @@ def train():
 
     model =CLS_SpecialEntityBERT(MODEL_NAME, config=model_config, tokenizer=tokenizer)
 
+  elif CFG["MODEL_TYPE"] =='sangmin_entity_special' :
+    tokenizer = add_token_ver2(tokenizer)
+    tokenized_train, entity_type_train = special_tokenized_dataset(train_dataset, tokenizer)
+    tokenized_dev, entity_type_dev = special_tokenized_dataset(dev_dataset, tokenizer)
+
+    RE_train_dataset = RE_special_Dataset(tokenized_train, train_label, entity_type_train)
+    RE_dev_dataset = RE_special_Dataset(tokenized_dev, dev_label, entity_type_dev)
+
+    model =sangmin_SpecialEntityBERT(MODEL_NAME, config=model_config, tokenizer=tokenizer)
+
   print(model.config)
   model.parameters
   model.to(device)
