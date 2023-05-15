@@ -161,8 +161,9 @@ def train():
 
       data_collator = DataCollatorWithPadding(tokenizer)
 
-  model.parameters
   model.to(device)
+  for name, param in model.named_parameters():
+    print(name, param)
 
   # 사용한 option 외에도 다양한 option들이 있습니다.
   # https://huggingface.co/transformers/main_classes/trainer.html#trainingarguments 참고해주세요.
@@ -195,6 +196,17 @@ def train():
       metric_for_best_model='micro f1 score'
     )
     
+    trainer = CustomTrainer(
+      loss_fn=cfg.loss_fn,
+      model=model,                         # the instantiated 🤗 Transformers model to be trained
+      args=training_args,                  # training arguments, defined above
+      train_dataset=RE_train_dataset,         # training dataset
+      eval_dataset=RE_dev_dataset,             # evaluation dataset
+      compute_metrics=compute_metrics,        # define metrics function
+      data_collator=data_collator,
+      callbacks=[EarlyStoppingCallback(early_stopping_patience=30)]
+    )
+    
   else:
     wandb.init(project=CFG['WANDB_PROJECT'], name=CFG['WANDB_NAME'])
     training_args = TrainingArguments(
@@ -220,17 +232,17 @@ def train():
       report_to="wandb", 
       metric_for_best_model='micro f1 score'
     )
-  # trainer = Trainer(
-  trainer = CustomTrainer(
-    loss_fn=CFG['LOSS_FN'],
-    model=model,                         # the instantiated 🤗 Transformers model to be trained
-    args=training_args,                  # training arguments, defined above
-    train_dataset=RE_train_dataset,         # training dataset
-    eval_dataset=RE_dev_dataset,             # evaluation dataset
-    compute_metrics=compute_metrics,        # define metrics function
-    data_collator=data_collator,
-    callbacks=[EarlyStoppingCallback(early_stopping_patience=30)]
-  )
+    
+    trainer = CustomTrainer(
+      loss_fn=CFG['LOSS_FN'],
+      model=model,                         # the instantiated 🤗 Transformers model to be trained
+      args=training_args,                  # training arguments, defined above
+      train_dataset=RE_train_dataset,         # training dataset
+      eval_dataset=RE_dev_dataset,             # evaluation dataset
+      compute_metrics=compute_metrics,        # define metrics function
+      data_collator=data_collator,
+      callbacks=[EarlyStoppingCallback(early_stopping_patience=30)]
+    )
 
   # train model
   trainer.train()
