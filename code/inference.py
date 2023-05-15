@@ -23,7 +23,7 @@ def inference(model, tokenized_sent, device, model_type, do_sequentialdoublebert
   """
     test dataset을 DataLoader로 만들어 준 후,
     batch_size로 나눠 model이 예측 합니다.
-  """
+  """ 
   dataloader = DataLoader(tokenized_sent, batch_size=16, shuffle=False)
   model.eval()
   output_pred = []
@@ -69,6 +69,7 @@ def inference(model, tokenized_sent, device, model_type, do_sequentialdoublebert
     output_prob.append(prob)
 
   return np.concatenate(output_pred).tolist(), np.concatenate(output_prob, axis=0).tolist()
+
 def num_to_label(label):
   """
     숫자로 되어 있던 class를 원본 문자열 라벨로 변환 합니다.
@@ -121,10 +122,13 @@ def load_test_dataset(dataset_dir, tokenizer, model_type, discrip, do_sequential
       tokenized_test, entity_type = special_tokenized_dataset(test_dataset, tokenizer)
       return test_dataset['id'], tokenized_test, test_label, entity_type
 
-def main(CFG):
+def main(cnt = None):
   """
     주어진 dataset csv 파일과 같은 형태일 경우 inference 가능한 코드입니다.
   """
+  with open('/opt/ml/module/config.yaml') as f:
+    CFG = yaml.safe_load(f)
+    
   device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
   # load tokenizer
   Tokenizer_NAME = CFG['MODEL_NAME']
@@ -198,14 +202,15 @@ def main(CFG):
   # 아래 directory와 columns의 형태는 지켜주시기 바랍니다.
   output = pd.DataFrame({'id':test_id,'pred_label':pred_answer,'probs':output_prob,})
 
-  output.to_csv('/opt/ml/prediction/submission.csv', index=False) # 최종적으로 완성된 예측한 라벨 csv 파일 형태로 저장.
+  if(CFG['FOLD']):
+    path_name = '/opt/ml/prediction/fold_csv'
+    file_name = f'/fold{cnt}.csv'
+    output.to_csv(path_name + file_name, index=False)
+  else:  
+    output.to_csv('/opt/ml/prediction/submission.csv', index=False) # 최종적으로 완성된 예측한 라벨 csv 파일 형태로 저장.
   #### 필수!! ##############################################
   print('---- Finish! ----')
 
 if __name__ == '__main__':
   seed_everything()
-
-  with open('/opt/ml/module/config.yaml') as f:
-    CFG = yaml.safe_load(f)
-
-  main(CFG)
+  main()

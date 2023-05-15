@@ -13,6 +13,7 @@ from load_data import *
 import wandb
 import yaml
 
+
 from custom.CustomModel import *
 from custom.CustomDataCollator import *
 from custom.CustomTrainer import *
@@ -90,21 +91,32 @@ def label_to_num(label):
 def train():
   with open('/opt/ml/module/config.yaml') as f:
     CFG = yaml.safe_load(f)
-
+    
+  if CFG['SWEEP_AVAILABLE']:
+    sweep_configuration = CFG['SWEEP_CONFIGURATION']
+    sweep_id = wandb.sweep(sweep=sweep_configuration, project=CFG['WANDB_PROJECT'])
+    wandb.agent(sweep_id=sweep_id, function=main, count=CFG['SWEEP_COUNT'])
+    
   MODEL_NAME = CFG['MODEL_NAME']
   tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+
   if CFG['MODEL_TYPE'] !='cls_entity_special' and CFG['MODEL_TYPE'] != 'base':
     tokenizer = add_token(tokenizer, CFG['MODEL_TYPE'])
 
-  if CFG['RATIO'] == 0.0:
+  if CFG['FOLD']:
+    train_dataset = load_data(CFG['FOLD_TRAIN_PATH'], CFG['MODEL_TYPE'], CFG['DISCRIP'], CFG['DO_SEQUENTIALBERTMODEL'])
+    dev_dataset = load_data(CFG['FOLD_DEV_PATH'], CFG['MODEL_TYPE'], CFG['DISCRIP'], CFG['DO_SEQUENTIALBERTMODEL'])
+  
+  elif CFG['RATIO'] == 0.0:
     train_val_split(0.1)
     train_dataset = load_data(CFG['TRAIN_PATH'], CFG['MODEL_TYPE'], CFG['DISCRIP'], CFG['DO_SEQUENTIALBERTMODEL'])
     dev_dataset = load_data(CFG['SPLIT_DEV_PATH'], CFG['MODEL_TYPE'], CFG['DISCRIP'], CFG['DO_SEQUENTIALBERTMODEL'])
+  
   else:
     train_val_split(CFG['RATIO'])
     train_dataset = load_data(CFG['SPLIT_TRAIN_PATH'], CFG['MODEL_TYPE'], CFG['DISCRIP'], CFG['DO_SEQUENTIALBERTMODEL'])
     dev_dataset = load_data(CFG['SPLIT_DEV_PATH'], CFG['MODEL_TYPE'], CFG['DISCRIP'], CFG['DO_SEQUENTIALBERTMODEL'])
-
+    
   train_label = label_to_num(train_dataset['label'].values)
   dev_label = label_to_num(dev_dataset['label'].values)
 
@@ -126,7 +138,7 @@ def train():
                                  model_type=CFG['MODEL_TYPE'], device=device)
     
     data_collator = SequentialDoubleBertDataCollator(tokenizer)
-  else:
+  else:     
     if CFG['MODEL_TYPE'] == 'base':
       # tokenizing dataset
       tokenized_train = tokenized_dataset(train_dataset, tokenizer)
@@ -137,7 +149,6 @@ def train():
       RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
 
       model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, config=model_config)
-
       data_collator = DataCollatorWithPadding(tokenizer)
 
     elif CFG['MODEL_TYPE'] == 'entity_special':
@@ -243,6 +254,7 @@ def train():
       report_to="wandb", 
       metric_for_best_model='micro f1 score'
     )
+
   # trainer = Trainer(
   trainer = CustomTrainer(
     loss_fn=CFG['LOSS_FN'],
@@ -251,10 +263,8 @@ def train():
     train_dataset=RE_train_dataset,         # training dataset
     eval_dataset=RE_dev_dataset,             # evaluation dataset
     compute_metrics=compute_metrics,        # define metrics function
-    # data_collator=data_collator,
-    callbacks=[EarlyStoppingCallback(early_stopping_patience=30)]
+    data_collator=data_collator,
   )
-
   # train model
   trainer.train()
   model.save_pretrained(CFG['MODEL_SAVE_DIR'])
@@ -266,13 +276,4 @@ def main():
 if __name__ == '__main__':
   # Seed 고정
   seed_everything()
-
-  with open('/opt/ml/module/config.yaml') as f:
-    CFG = yaml.safe_load(f)
-
-  if CFG['SWEEP_AVAILABLE']:
-    sweep_configuration = CFG['SWEEP_CONFIGURATION']
-    sweep_id = wandb.sweep(sweep=sweep_configuration, project=CFG['WANDB_PROJECT'])
-    wandb.agent(sweep_id=sweep_id, function=main, count=CFG['SWEEP_COUNT'])
-
   main()
