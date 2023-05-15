@@ -22,7 +22,7 @@ MAX_EPOCH: 3
 LR: 2.0e-5 # Example Format : 5.0e-5 / 5.e-5 / 5.E-5
 BATCH_SIZE: 32
 WARMUP_STEP: 500
-RATIO: 0.01 # Train Validation Split ratio
+RATIO: 0.15 # Train Validation Split ratio
 WEIGHT_DECAY: 0.01
 
 # LOG
