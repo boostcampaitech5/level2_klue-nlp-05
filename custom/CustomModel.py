@@ -143,7 +143,7 @@ class CLS_SpecialEntityBERT(BertPreTrainedModel) :
         # 이 classifier는 각 entity special token 마다 적용된다.
         self.pool_special_linear_block = torch.nn.Sequential(
                 torch.nn.Linear(
-                    5 * self.model.config.hidden_size, 5 * self.model.config.hidden_size
+                    5 * self.model.config.hidden_size, self.model.config.hidden_size
                 ),  # 5 for 1 [CLS], 2 [SUBJ], 2 [OBJ]
                 torch.nn.ReLU(),
                 torch.nn.Dropout(),
