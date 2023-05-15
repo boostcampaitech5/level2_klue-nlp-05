@@ -17,7 +17,7 @@ from load_data import *
 from custom.CustomModel import *
 from custom.CustomDataCollator import *
 from module.seed_everything import seed_everything
-from module.add_token import add_token
+from module.add_token import add_token, add_token_ver2
 
 def inference(model, tokenized_sent, device, model_type, do_sequentialdoublebert=0):
   """
@@ -40,8 +40,7 @@ def inference(model, tokenized_sent, device, model_type, do_sequentialdoublebert
             subject_words=data['subject_words'],
             object_words=data['object_words'],
             )
-      else:
-        if model_type == 'entity_special':
+      elif model_type == 'entity_special' or model_type == "cls_entity_special" or model_type == "sangmin_entity_special":
           outputs = model(
             input_ids=data['input_ids'].to(device),
             attention_mask=data['attention_mask'].to(device),
@@ -49,12 +48,12 @@ def inference(model, tokenized_sent, device, model_type, do_sequentialdoublebert
             subject_type=data['subject_type'],
             object_type=data['object_type'],
             )
-        else:
-          outputs = model(
-            input_ids=data['input_ids'].to(device),
-            attention_mask=data['attention_mask'].to(device),
-            token_type_ids=data['token_type_ids'].to(device)
-            )
+      else:
+        outputs = model(
+          input_ids=data['input_ids'].to(device),
+          attention_mask=data['attention_mask'].to(device),
+          token_type_ids=data['token_type_ids'].to(device)
+          )
     if do_sequentialdoublebert:
       logits = outputs
     elif model_type == 'base':
@@ -115,6 +114,13 @@ def load_test_dataset(dataset_dir, tokenizer, model_type, discrip, do_sequential
       tokenized_test = punct_tokenized_dataset(test_dataset, tokenizer)
       return test_dataset['id'], tokenized_test, test_label
 
+  elif model_type == "cls_entity_special" :
+    test_dataset = load_data(dataset_dir, model_type)
+    test_label = list(map(int, test_dataset['label'].values))
+    # tokenizing dataset
+    tokenized_test, entity_type = special_tokenized_dataset(test_dataset, tokenizer)
+    return test_dataset['id'], tokenized_test, test_label, entity_type
+
 def main(CFG):
   """
     주어진 dataset csv 파일과 같은 형태일 경우 inference 가능한 코드입니다.
@@ -158,6 +164,28 @@ def main(CFG):
     
       test_id, test_dataset, test_label = load_test_dataset(test_dataset_dir, tokenizer, CFG['MODEL_TYPE'], CFG['DISCRIP'])
       Re_test_dataset = RE_Dataset(test_dataset ,test_label)
+    
+    elif CFG["MODEL_TYPE"] == 'cls_entity_special' :
+      tokenizer = AutoTokenizer.from_pretrained(Tokenizer_NAME)
+      tokenizer = add_token_ver2(tokenizer)
+      model = CLS_SpecialEntityBERT(Tokenizer_NAME, model_config, tokenizer)
+
+      state_dict = torch.load(f"{MODEL_NAME}/pytorch_model.bin")
+      model.load_state_dict(state_dict)
+
+      test_id, test_dataset, test_label, entity_type = load_test_dataset(test_dataset_dir, tokenizer, CFG['MODEL_TYPE'], None)
+      Re_test_dataset = RE_special_Dataset(test_dataset ,test_label, entity_type)
+
+    elif CFG["MODEL_TYPE"] == 'sangmin_entity_special' :
+      tokenizer = AutoTokenizer.from_pretrained(Tokenizer_NAME)
+      tokenizer = add_token_ver2(tokenizer)
+      model = CLS_SpecialEntityBERT(Tokenizer_NAME, model_config, tokenizer)
+
+      state_dict = torch.load(f"{MODEL_NAME}/pytorch_model.bin")
+      model.load_state_dict(state_dict)
+
+      test_id, test_dataset, test_label, entity_type = load_test_dataset(test_dataset_dir, tokenizer, CFG['MODEL_TYPE'], None)
+      Re_test_dataset = RE_special_Dataset(test_dataset ,test_label, entity_type)
 
   model.to(device)
 

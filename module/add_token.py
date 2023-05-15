@@ -12,3 +12,10 @@ def add_token(tokenizer, model_type):
         tokenizer.add_tokens(['§'])
     
     return tokenizer
+
+def add_token_ver2(tokenizer) :
+    new_special_tokens = {"additional_special_tokens" : ['[SUBJ]' , '[OBJ]' , '[PER]' , '[ORG]',
+    '[DAT]' , '[LOC]' , '[POH]' , '[NOH]']}
+    num_new_special_tokens = tokenizer.add_special_tokens(new_special_tokens)
+
+    return tokenizer
