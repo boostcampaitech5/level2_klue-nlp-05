@@ -110,7 +110,7 @@ def train():
     RE_train_dataset = RE_Dataset(tokenized_train, train_label)
     RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
 
-    model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, config=model_config)
+    model = AutoModelForSequenceClassification.from_pretrained(CFG['MODEL_PATH'], config=model_config)
 
     data_collator = DataCollatorWithPadding(tokenizer)
 
