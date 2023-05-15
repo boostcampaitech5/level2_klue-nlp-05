@@ -2,9 +2,14 @@ import pandas as pd
 from tqdm.auto import tqdm
 from sklearn.model_selection import train_test_split
 import os
+import yaml
 
 def train_val_split(ratio: float):
-    train = pd.read_csv("/opt/ml/dataset/train/train.csv")
+    
+    with open('/opt/ml/module/config.yaml') as f:
+        CFG = yaml.safe_load(f)
+
+    train = pd.read_csv(CFG['TRAIN_PATH'])
 
     lbl_dict = {}
     for lbl in train['label']:

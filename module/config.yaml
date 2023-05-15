@@ -1,16 +1,17 @@
 # PATH
-TRAIN_PATH: "/opt/ml/dataset/train/train.csv"
-DEV_PATH: "/opt/ml/dataset/train/train.csv"
+TRAIN_PATH: "/opt/ml/dataset/train/remove_duplicated_train.csv"
+DEV_PATH: "/opt/ml/dataset/train/remove_duplicated_train.csv"
 SPLIT_TRAIN_PATH: "/opt/ml/dataset/save_split_dataset/train.csv"
 SPLIT_DEV_PATH: "/opt/ml/dataset/save_split_dataset/dev.csv"
 TEST_PATH: "/opt/ml/dataset/test/test_data.csv"
 
-OUTPUT_DIR: "./results"
+OUTPUT_DIR: "./results/roberta_large_mlm_er_lr5.0e-5_batch32"
 LOGGING_DIR: "./logs"
-MODEL_SAVE_DIR: "./best_model"
+MODEL_SAVE_DIR: "/opt/ml/results/roberta_large_mlm_er_lr5.0e-5_batch32/checkpoint-2500"
 
 # MODEL (확인 필수)
-MODEL_NAME: "klue/roberta-small"
+MODEL_NAME: "klue/roberta-large"
+MODEL_PATH: "/opt/ml/best_model/pretrain/roberta_large_mlm_lr5.0e-5_batch64"
 TOTAL_SAVE_MODEL: 5
 
 # LOSS (확인 필수)
@@ -65,3 +66,4 @@ SWEEP_CONFIGURATION: # SWEEP 세부 내용 설정
 MODEL_TYPE: 'entity_punct' # 'base', 'entity_special', 'entity_punct'
 DO_SEQUENTIALBERTMODEL: 1 # SequentialBertModel 사용 여부 (0 : 미사용, 1 : 사용)
 DISCRIP: 0
+PRE_TRAIN : 'MLM' # None, MLM, NER, MLM_NER
