@@ -36,7 +36,7 @@ class Fold:
             print("=========== KFOLD FINISHED ===========")
 
 def main():
-    kfold = Fold(5)
+    kfold = Fold(n_fold=5)
     kfold.fold()
     print(kfold)
     
