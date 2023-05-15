@@ -114,12 +114,12 @@ def load_test_dataset(dataset_dir, tokenizer, model_type, discrip, do_sequential
       tokenized_test = punct_tokenized_dataset(test_dataset, tokenizer)
       return test_dataset['id'], tokenized_test, test_label
 
-  elif model_type == "cls_entity_special" :
-    test_dataset = load_data(dataset_dir, model_type)
-    test_label = list(map(int, test_dataset['label'].values))
-    # tokenizing dataset
-    tokenized_test, entity_type = special_tokenized_dataset(test_dataset, tokenizer)
-    return test_dataset['id'], tokenized_test, test_label, entity_type
+    elif model_type == "cls_entity_special" :
+      test_dataset = load_data(dataset_dir, model_type)
+      test_label = list(map(int, test_dataset['label'].values))
+      # tokenizing dataset
+      tokenized_test, entity_type = special_tokenized_dataset(test_dataset, tokenizer)
+      return test_dataset['id'], tokenized_test, test_label, entity_type
 
 def main(CFG):
   """
