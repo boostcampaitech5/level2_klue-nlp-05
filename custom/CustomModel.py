@@ -447,7 +447,7 @@ class CLS_SpecialEntityBERT(BertPreTrainedModel) :
                 ),  # 5 for 1 [CLS], 2 [SUBJ], 2 [OBJ]
                 torch.nn.ReLU(),
                 torch.nn.Dropout(),
-                torch.nn.Linear(5 * self.model.config.hidden_size, config.num_labels),
+                torch.nn.Linear(self.model.config.hidden_size, config.num_labels),
             )
     
     def forward(self, input_ids, attention_mask=None, token_type_ids=None, labels=None, subject_type=None, object_type=None) :
@@ -493,11 +493,9 @@ class CLS_SpecialEntityBERT(BertPreTrainedModel) :
         if labels is not None:
             loss_fct = torch.nn.CrossEntropyLoss()
             loss = loss_fct(before_output.view(-1, self.config.num_labels), labels.view(-1))
-            real_output = (loss,) + (before_output,)
-        else :
-            real_output = (before_output,)
         
-        return real_output
+        outputs = {'loss': loss, 'logits': before_output}
+        return outputs
 
 class sangmin_SpecialEntityBERT(BertPreTrainedModel) :
     def __init__(self, model_name, config, tokenizer):
@@ -565,8 +563,6 @@ class sangmin_SpecialEntityBERT(BertPreTrainedModel) :
         if labels is not None:
             loss_fct = torch.nn.CrossEntropyLoss()
             loss = loss_fct(before_output.view(-1, self.config.num_labels), labels.view(-1))
-            real_output = (loss,) + (before_output,)
-        else :
-            real_output = (before_output,)
         
-        return real_output
+        outputs = {'loss': loss, 'logits': before_output}
+        return outputs
