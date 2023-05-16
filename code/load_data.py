@@ -210,7 +210,7 @@ def cls_special_preprocessing_dataset(dataset) :
   output_dataset = pd.DataFrame({'id':dataset['id'], 'sentence':sentences, 'label':dataset['label'], 'subject_type':subject_type, 'object_type':object_type})
   return output_dataset
 
-def punct_preprocessing_dataset(dataset):
+def punct_preprocessing_dataset(dataset, discrip):
   sentences = []
   
   for sub_entity, obj_entity, sentence in zip(dataset['subject_entity'], dataset['object_entity'], dataset['sentence']):
