@@ -220,7 +220,7 @@ def main(cnt = None):
     file_name = f'/fold{cnt}.csv'
     output.to_csv(path_name + file_name, index=False)
   else:  
-    output.to_csv('/opt/ml/prediction/submission.csv', index=False) # 최종적으로 완성된 예측한 라벨 csv 파일 형태로 저장.
+    output.to_csv('/opt/ml/code/prediction/roberta-large_new-special_batch=32_epoch=3_lr=5e-5_dev=0.15_wd=0.1.csv', index=False) # 최종적으로 완성된 예측한 라벨 csv 파일 형태로 저장.
   #### 필수!! ##############################################
   print('---- Finish! ----')
 

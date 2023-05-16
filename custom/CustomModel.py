@@ -553,12 +553,13 @@ class New_SpecialEntityBERT(BertPreTrainedModel) :
         # real_output = (befroe_output,) + output[2:] # 여기서 output[2:] 는 hidden_state들!
         # bert 모델을 찾아보면 forward 하면 나와야 하는 값이
         # # (masked_lm_loss), prediction_scores, (hidden_states), (attentions)
+        outputs = {'logits':before_output}
 
         if labels is not None:
             loss_fct = torch.nn.CrossEntropyLoss()
             loss = loss_fct(before_output.view(-1, self.config.num_labels), labels.view(-1))
-        
-        outputs = {'loss': loss, 'logits': before_output}
+            outputs = {'loss': loss, 'logits': before_output}
+
         return outputs
 
 class sangmin_SpecialEntityBERT(BertPreTrainedModel) :

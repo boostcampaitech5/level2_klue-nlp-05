@@ -271,7 +271,7 @@ def new_punct_preprocessing_dataset(dataset, discrip):
   
   return out_dataset  
 
-def new_special_preprocessing_dataset(dataset) :
+def new_special_preprocessing_dataset(dataset,discrip) :
   sentences = []
   subject_type = []
   object_type = []
@@ -283,6 +283,8 @@ def new_special_preprocessing_dataset(dataset) :
     start_obj = obj_entity['start_idx']
     subj_word = subj_entity['type']
     obj_word = obj_entity['type']
+    subj_real_word = subj_entity['word']
+    obj_real_word = obj_entity['word']
     subject_type.append(subj_word)
     object_type.append(obj_word)
     if start_subj < start_obj :
@@ -293,6 +295,10 @@ def new_special_preprocessing_dataset(dataset) :
       sentence = (sentence[:start_obj] + "[OBJ] " + obj_type_dict[obj_word]
       + sentence[start_obj:start_subj] + "[SUBJ] " + obj_type_dict[subj_word] + sentence[start_subj:])
     
+    if discrip:
+      sentence = add_discription(sentence, subj_real_word, obj_real_word, f" \'{obj_word}\' ")
+      
+
     sentences.append(sentence)
   
   output_dataset = pd.DataFrame({'id':dataset['id'], 'sentence':sentences, 'label':dataset['label'], 'subject_type':subject_type, 'object_type':object_type})
@@ -314,7 +320,7 @@ def load_data(dataset_dir, model_type, discrip, do_sequentialdoublebert=0):
   elif model_type == 'cls_entity_special' or model_type == "sangmin_entity_special":
     dataset = cls_special_preprocessing_dataset(pd_dataset)
   elif model_type == 'new_entity_special' :
-    dataset = new_special_preprocessing_dataset(pd_dataset)
+    dataset = new_special_preprocessing_dataset(pd_dataset,discrip)
   else:
     dataset = preprocessing_dataset(pd_dataset, discrip)
 
