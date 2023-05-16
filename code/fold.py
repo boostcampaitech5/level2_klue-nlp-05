@@ -36,6 +36,7 @@ class Fold:
         def __repr__():
             print("=========== KFOLD FINISHED ===========")
 
+
 def main():
     with open("/opt/ml/module/config.yaml") as f:
         CFG = yaml.safe_load(f)
