@@ -7,6 +7,4 @@
 !module/*
 !prediction/fold_csv/
 !prediction/fold_csv/*
-!dataset/fold_dataset/
-!dataset/fold_dataset/*
 module/mlm_dataset.py
