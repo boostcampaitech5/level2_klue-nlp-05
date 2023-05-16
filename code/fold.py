@@ -26,6 +26,7 @@ class Fold:
             dev_df = self.train_data.iloc[dev_index]
             dev_df.to_csv(self.CFG["FOLD_DEV_PATH"])
             print("!!!! train, dev split complite !!!!")
+            print("Here we go~~!")
             
             # training
             train.main()
