@@ -122,7 +122,7 @@ def train():
     RE_train_dataset = RE_Restrict_Dataset(tokenized_train, train_label, restrict_num_train)
     RE_dev_dataset = RE_Restrict_Dataset(tokenized_dev, dev_label, restrict_num_dev)
 
-    model = RestrictPunctBERT2(MODEL_NAME, config=model_config, tokenizer=tokenizer)
+    model = RestrictPunctBERT3(MODEL_NAME, config=model_config, tokenizer=tokenizer)
 
     data_collator = DataCollatorWithPadding(tokenizer)
 

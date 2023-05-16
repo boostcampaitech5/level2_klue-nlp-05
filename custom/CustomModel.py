@@ -2,6 +2,27 @@ from transformers import AutoModel, BertPreTrainedModel
 import torch
 from copy import deepcopy
 
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
+w = [1.0, 1.7999, 4.1223, 4.2224, 2.5114, 2.9772, 1.9814, 3.0767, 5.2281, 6.2914, 4.4455, 4.8999, 4.8999, 4.9155, 3.8822, 
+    3.0446, 5.2499, 3.4842, 4.0533, 5.5776, 2.6310, 3.9087, 5.9729, 5.7559, 4.1271, 3.1326, 5.0506, 6.4737, 5.1519, 5.5982]
+
+w = torch.tensor(w).to(device)
+
+
+def DWBL(logits, labels):
+    
+    sum_ = torch.tensor(0.0, requires_grad=True)
+    logits = torch.nn.functional.softmax(logits, dim=-1)
+    labels = torch.nn.functional.one_hot(labels, num_classes=30)
+    
+    for i in range(30):
+        sum_ = sum_ + (w[i]**(1-logits[:,i]))*labels[:,i]*torch.log(logits[:,i]) - logits[:,i]*(1-logits[:,i])
+        
+    sum_ = -sum_.mean()
+    
+    return sum_
+
 class SepecialEntityBERT(BertPreTrainedModel):
     def __init__(self, model_name, config, tokenizer):
         super().__init__(config)
@@ -111,7 +132,8 @@ class SepecialPunctBERT(BertPreTrainedModel):
         
         # 이 classifier는 각 entity special token 마다 적용된다.
         self.classifier = torch.nn.Sequential(
-            self.model.pooler, # hidden_size -> hidden_size
+            #self.model.pooler, # hidden_size -> hidden_size
+            torch.nn.Linear(in_features=config.hidden_size, out_features=config.hidden_size, bias=True),
             torch.nn.Dropout(p=0.1),
             torch.nn.Linear(in_features=config.hidden_size, out_features=config.num_labels , bias=True)
         )
@@ -161,7 +183,8 @@ class SepecialPunctBERT(BertPreTrainedModel):
         # (batch_size, hidden_size) 가 2개인 list
         pooled_output = [torch.stack([special_outputs[i, special_idx[i][j], :] for i in range(batch_size)]) for j in range(2)]
 
-        logits = torch.stack([self.special_classifier[i](pooled_output[i].unsqueeze(1)) for i in range(2)], dim=0) # (2, batch, num_label)
+        #logits = torch.stack([self.special_classifier[i](pooled_output[i].unsqueeze(1)) for i in range(2)], dim=0) # (2, batch, num_label)
+        logits = torch.stack([self.special_classifier[i](pooled_output[i]) for i in range(2)], dim=0) # (2, batch, num_label)
         logits = torch.sum(self.weight_parameter*logits, dim=0) # (batch_size, num_label)
         
         '''
@@ -174,8 +197,11 @@ class SepecialPunctBERT(BertPreTrainedModel):
         loss = None
         
         if labels is not None:
-            loss_fun = torch.nn.CrossEntropyLoss()
+            weights = torch.ones(30).to(device)
+            weights[0] = 2
+            loss_fun = torch.nn.CrossEntropyLoss(weight=weights)
             loss = loss_fun(logits.view(-1, self.config.num_labels), labels.view(-1))
+            #loss = DWBL(logits.view(-1, self.config.num_labels), labels.view(-1))
         
         # attention 은 num_layer * (batch_size, num_attention_head, sequence_length, sequence_length)    
         if output_attentions:    

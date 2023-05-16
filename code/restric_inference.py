@@ -116,7 +116,7 @@ def main(CFG):
     Re_test_dataset = RE_Dataset(test_dataset ,test_label)
     
   elif CFG['MODEL_TYPE'] == 'entity_punct':
-    model = RestrictPunctBERT2(Tokenizer_NAME, model_config, tokenizer)
+    model = RestrictPunctBERT3(Tokenizer_NAME, model_config, tokenizer)
     state_dict = torch.load(f'{MODEL_NAME}/pytorch_model.bin')
     model.load_state_dict(state_dict)
     
