@@ -4,6 +4,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
 class FocalLoss(nn.Module):
     def __init__(self, alpha=0.25, gamma=2.0):
         super(FocalLoss, self).__init__()
@@ -77,6 +79,11 @@ class CustomTrainer(Trainer):
         #     focal_loss = focal_loss_fn(logits, labels)
         #     label_smoothing_loss = label_smoothing_loss_fn(outputs, labels)
         #     loss = focal_loss + label_smoothing_loss
+        elif self.loss_fn == 'penalty_loss':
+            weights = torch.ones(30).to(device)
+            weights[11] = 2
+            loss_fun = torch.nn.CrossEntropyLoss(weight=weights)
+            loss = loss_fun(logits, labels)
         else:
             loss = default_loss_fn(logits, labels)
         
