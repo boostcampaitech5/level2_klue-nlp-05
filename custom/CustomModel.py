@@ -5,10 +5,12 @@ from copy import deepcopy
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 w = [1.0, 1.7999, 4.1223, 4.2224, 2.5114, 2.9772, 1.9814, 3.0767, 5.2281, 6.2914, 4.4455, 4.8999, 4.8999, 4.9155, 3.8822, 
-    3.0446, 5.2499, 3.4842, 4.0533, 5.5776, 2.6310, 3.9087, 5.9729, 5.7559, 4.1271, 3.1326, 5.0506, 6.4737, 5.1519, 5.5982]
+    3.0446, 5.2499, 3.4842, 4.0533, 5.5776, 2.6310, 3.9087, 5.9729, 5.7559, 4.1271, 3.1326, 5.0506, 6.4737, 5.1519, 5.5982] # DWBL
+w_2 = [1.2000, 2.0000, 4.3224, 4.4225, 2.7115, 3.1773, 2.1815, 3.2768, 5.4282, 6.4915, 4.6456, 5.1000, 5.1000, 5.1156, 4.0823, 
+       3.2446, 5.4500, 3.6843, 4.2534, 5.7777, 2.8311, 4.1088, 6.1730, 5.9559, 4.3272, 3.3327, 5.2507, 6.6738, 5.3520, 5.7983] # inverse log
 
 w = torch.tensor(w).to(device)
-
+w_2 = torch.tensor(w_2).to(device)
 
 def DWBL(logits, labels):
     
@@ -197,11 +199,11 @@ class SepecialPunctBERT(BertPreTrainedModel):
         loss = None
         
         if labels is not None:
-            weights = torch.ones(30).to(device)
-            weights[0] = 2
-            loss_fun = torch.nn.CrossEntropyLoss(weight=weights)
-            loss = loss_fun(logits.view(-1, self.config.num_labels), labels.view(-1))
-            #loss = DWBL(logits.view(-1, self.config.num_labels), labels.view(-1))
+            #weights = torch.ones(30).to(device)
+            #weights[0] = 2
+            #loss_fun = torch.nn.CrossEntropyLoss(weight=w_2)
+            #loss = loss_fun(logits.view(-1, self.config.num_labels), labels.view(-1))
+            loss = DWBL(logits.view(-1, self.config.num_labels), labels.view(-1))
         
         # attention 은 num_layer * (batch_size, num_attention_head, sequence_length, sequence_length)    
         if output_attentions:    

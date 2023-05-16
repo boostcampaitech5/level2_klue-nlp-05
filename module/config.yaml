@@ -13,7 +13,7 @@ MODEL_NAME: "klue/roberta-large"
 TOTAL_SAVE_MODEL: 5
 
 # HYPER PARAMETER (확인 필수)
-MAX_EPOCH: 3
+MAX_EPOCH: 4
 LR: 5.0e-5 # Example Format : 5.0e-5 / 5.e-5 / 5.E-5
 BATCH_SIZE: 32
 WARMUP_STEP: 500
@@ -27,7 +27,7 @@ EVAL_STEP: 500
 
 # WANDB (확인 필수)
 WANDB_PROJECT: "new_klue_roberta-large"
-WANDB_NAME: "batch=32_lr=5e-5_epoch=3_entity_punct_discrip_norelationpenalty=2_ev=0.15_decay=0.1_seed=14"
+WANDB_NAME: "batch=32_lr=5e-5_epoch=3_entity_punct_discrip_DWBL_log_ev=0.15_decay=0.1_seed=14"
 
 # WANDB SWEEP (확인 필수 및 양식 확인(들여쓰기))
 SWEEP_AVAILABLE: 0 # SWEEP을 사용할 것인지 (1 : 사용, 0 : 미사용)
