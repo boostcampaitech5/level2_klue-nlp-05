@@ -200,7 +200,7 @@ def main(cnt = None):
       state_dict = torch.load(f"{MODEL_NAME}/pytorch_model.bin")
       model.load_state_dict(state_dict)
 
-      test_id, test_dataset, test_label, entity_type = load_test_dataset(test_dataset_dir, tokenizer, CFG['MODEL_TYPE'], None)
+      test_id, test_dataset, test_label, entity_type = load_test_dataset(test_dataset_dir, tokenizer, CFG['MODEL_TYPE'], CFG["DISCRIP"])
       Re_test_dataset = RE_special_Dataset(test_dataset ,test_label, entity_type)
 
 
