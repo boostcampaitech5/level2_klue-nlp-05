@@ -115,7 +115,7 @@ def add_discription(sentence, sub_word, obj_word, obj_type):
   return sentence
 
 def add_discription_ver2(sentence, subj_word, obj_word, subj_type, obj_type) :
-  discription = f"이 문장에서 {subj_word}는 {subj_type}이고 {obj_word}는 {obj_type}이다."
+  discription = f" 이 문장에서 {subj_word}는 {subj_type}이고 {obj_word}는 {obj_type}이다."
   sentence = sentence + ":" + discription
 
   return sentence
@@ -294,18 +294,18 @@ def new_special_preprocessing_dataset(dataset,discrip) :
     subject_type.append(subj_word)
     object_type.append(obj_word)
     if start_subj < start_obj :
-      sentence = (sentence[:start_subj] + "[SUBJ] " + obj_type_dict[subj_word] 
-      + sentence[start_subj:start_obj] + "[OBJ] " + obj_type_dict[obj_word] + sentence[start_obj:])
+      sentence = (sentence[:start_subj] + "[SUBJ] " + obj_type_dict[subj_word] + " "
+      + sentence[start_subj:start_obj] + "[OBJ] " + obj_type_dict[obj_word] + " " + sentence[start_obj:])
 
     else :
-      sentence = (sentence[:start_obj] + "[OBJ] " + obj_type_dict[obj_word]
-      + sentence[start_obj:start_subj] + "[SUBJ] " + obj_type_dict[subj_word] + sentence[start_subj:])
+      sentence = (sentence[:start_obj] + "[OBJ] " + obj_type_dict[obj_word] + " "
+      + sentence[start_obj:start_subj] + "[SUBJ] " + obj_type_dict[subj_word] + " " + sentence[start_subj:])
     
     if discrip == 1:
       sentence = add_discription(sentence, subj_real_word, obj_real_word, f" \'{obj_word}\' ")
     
     elif discrip == 2 :
-      sentence = add_discription_ver2(sentence, subj_real_word, obj_real_word, f"\'{subj_word}\'", f"\'{obj_word}\'")
+      sentence = add_discription_ver2(sentence, subj_real_word, obj_real_word, f"\'{obj_type_dict[subj_word]}\'", f"\'{obj_type_dict[obj_word]}\'")
 
     sentences.append(sentence)
   
