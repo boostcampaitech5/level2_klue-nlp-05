@@ -52,7 +52,8 @@ def inference(model, tokenized_sent, device, model_type, do_sequentialdoublebert
         outputs = model(
           input_ids=data['input_ids'].to(device),
           attention_mask=data['attention_mask'].to(device),
-          token_type_ids=data['token_type_ids'].to(device)
+          token_type_ids=data['token_type_ids'].to(device),
+          source=data['source']
           )
     if do_sequentialdoublebert:
       logits = outputs
@@ -112,8 +113,8 @@ def load_test_dataset(dataset_dir, tokenizer, model_type, discrip, do_sequential
       test_dataset = load_data(dataset_dir, model_type, discrip)
       test_label = list(map(int,test_dataset['label'].values))
       # tokenizing dataset
-      tokenized_test = punct_tokenized_dataset(test_dataset, tokenizer)
-      return test_dataset['id'], tokenized_test, test_label
+      tokenized_test, source = punct_tokenized_dataset(test_dataset, tokenizer)
+      return test_dataset['id'], tokenized_test, test_label, source
 
     elif model_type == "cls_entity_special" :
       test_dataset = load_data(dataset_dir, model_type)
@@ -166,8 +167,8 @@ def main(cnt = None):
       state_dict = torch.load(f'{MODEL_NAME}/pytorch_model.bin')
       model.load_state_dict(state_dict)
     
-      test_id, test_dataset, test_label = load_test_dataset(test_dataset_dir, tokenizer, CFG['MODEL_TYPE'], CFG['DISCRIP'])
-      Re_test_dataset = RE_Dataset(test_dataset ,test_label)
+      test_id, test_dataset, test_label, test_source = load_test_dataset(test_dataset_dir, tokenizer, CFG['MODEL_TYPE'], CFG['DISCRIP'])
+      Re_test_dataset = RE_source_Dataset(test_dataset ,test_label, test_source)
     
     elif CFG["MODEL_TYPE"] == 'cls_entity_special' :
       tokenizer = AutoTokenizer.from_pretrained(Tokenizer_NAME)

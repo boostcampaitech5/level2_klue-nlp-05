@@ -107,34 +107,26 @@ class SepecialPunctBERT(BertPreTrainedModel):
         self.config = config
         
         ids = tokenizer.convert_tokens_to_ids(['@', '#'])
+        self.cls_ids = tokenizer.convert_tokens_to_ids(['[CLS]'])
         self.sub_ids, self.obj_ids = ids[0], ids[1]
-        
+
+        src_tokens = ['[wikipedia]', '[wikitree]', '[policy_briefing]']
+        token_ids = self.tokenizer.convert_tokens_to_ids(src_tokens)
+        self.src_token = dict(zip(src_tokens, token_ids))
         
         # 이 classifier는 각 entity special token 마다 적용된다.
         self.classifier = torch.nn.Sequential(
-            self.model.pooler, # hidden_size -> hidden_size
+            torch.nn.Linear(in_features=config.hidden_size, out_features=config.hidden_size , bias=True), 
             torch.nn.Dropout(p=0.1),
-            torch.nn.Linear(in_features=config.hidden_size, out_features=config.num_labels , bias=True)
+            torch.nn.Linear(in_features=config.hidden_size, out_features=config.num_labels , bias=True),
+            torch.nn.ReLU()
         )
         
-        self.special_classifier = torch.nn.ModuleList([deepcopy(self.classifier) for _ in range(2)])
+        self.special_classifier = torch.nn.ModuleList([deepcopy(self.classifier) for _ in range(3)])
         # 각 classifier layer를 통과한 hidden state를 가중합하고 그 가중치를 학습시킨다.
-        self.weight_parameter = torch.nn.Parameter(torch.tensor([[[0.5]], [[0.5]]]))
+        self.weight_parameter = torch.nn.Parameter(torch.tensor([[[1/3]], [[1/3]], [[1/3]]]))
         
-        '''
-        self.special_classifier = torch.nn.ModuleList([deepcopy(self.classifier) for _ in range(4)])
-        # 각 classifier layer를 통과한 hidden state를 가중합하고 그 가중치를 학습시킨다.
-        self.weight_parameter = torch.nn.Parameter(torch.tensor([[[0.25]], [[0.25]], [[0.25]], [[0.25]]]))
-        '''
-        '''
-        self.classifier = torch.nn.Sequential(
-            torch.nn.Linear(in_features=2*config.hidden_size, out_features=2*config.hidden_size, bias=True),
-            torch.nn.Dropout(p=0.1),
-            torch.nn.Linear(in_features=2*config.hidden_size, out_features=config.num_labels, bias=True),
-            )
-        '''
-        
-    def forward(self, input_ids, attention_mask=None, token_type_ids=None, labels=None, output_attentions=False):
+    def forward(self, input_ids, attention_mask=None, token_type_ids=None, labels=None, output_attentions=False, source=None):
         outputs = self.model(input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids, output_attentions=output_attentions)
         special_outputs = outputs.last_hidden_state
                         
@@ -144,33 +136,23 @@ class SepecialPunctBERT(BertPreTrainedModel):
         
         # entity type을 forward에서  안 받고, 그냥 문장 내에서 special token을 찾는 방법도 써보았으나, 학습시간이 거의 2배로 증가한다.
         for i in range(batch_size):
+            source_ids = self.src_token[source[i]]
+            source_idx = torch.nonzero(input_ids[i] == source_ids)[0][0]
             
             sub_start_idx = torch.nonzero(input_ids[i] == self.sub_ids)[0][0] # entity type에 맞는 special token의 index
-            # sub_end_idx = torch.nonzero(input_ids[i] == self.sub_ids)[1][0]
+            sub_end_idx = torch.nonzero(input_ids[i] == self.sub_ids)[1][0]
             obj_start_idx = torch.nonzero(input_ids[i] == self.obj_ids)[0][0]
-            # obj_end_idx = torch.nonzero(input_ids[i] == self.obj_ids)[1][0]
+            obj_end_idx = torch.nonzero(input_ids[i] == self.obj_ids)[1][0]
+            cls_idx = torch.nonzero(input_ids[i] == self.cls_ids[0])[0][0]
             
-            special_idx.append([sub_start_idx, obj_start_idx])
-            # special_idx.append([sub_start_idx, sub_end_idx, obj_start_idx, obj_end_idx])
-        
-        '''
-        pooled_output = torch.stack([special_outputs[i, special_idx[i], :].view(-1, 2*self.config.hidden_size).squeeze() for i in range(batch_size)], dim=0) # batch, 2*hidden_size
-        
-        logits = self.classifier(pooled_output) # batch, num_labels
-        '''
+            # special_idx.append([sub_start_idx, obj_start_idx])
+            special_idx.append([source_idx, sub_start_idx, obj_start_idx])
         
         # (batch_size, hidden_size) 가 2개인 list
-        pooled_output = [torch.stack([special_outputs[i, special_idx[i][j], :] for i in range(batch_size)]) for j in range(2)]
+        pooled_output = [torch.stack([special_outputs[i, special_idx[i][j], :] for i in range(batch_size)]) for j in range(3)]
 
-        logits = torch.stack([self.special_classifier[i](pooled_output[i].unsqueeze(1)) for i in range(2)], dim=0) # (2, batch, num_label)
+        logits = torch.stack([self.special_classifier[i](pooled_output[i]) for i in range(3)], dim=0) # (2, batch, num_label)
         logits = torch.sum(self.weight_parameter*logits, dim=0) # (batch_size, num_label)
-        
-        '''
-        pooled_output = [torch.stack([special_outputs[i, special_idx[i][j], :] for i in range(batch_size)]) for j in range(4)]
-
-        logits = torch.stack([self.special_classifier[i](pooled_output[i].unsqueeze(1)) for i in range(4)], dim=0) # (4, batch, num_label)
-        logits = torch.sum(self.weight_parameter*logits, dim=0) # (batch_size, num_label)
-        '''
         
         loss = None
         

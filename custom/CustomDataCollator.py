@@ -35,3 +35,16 @@ class SequentialDoubleBertDataCollator(DataCollatorWithPadding):
         batch['object_words'] = [feature['object_words'] for feature in features]
         
         return batch
+    
+class Source_CustomDataCollator(DataCollatorWithPadding):
+    def __call__(self, features):
+        # DataCollatorWithPadding 에 들어가기 전에 subject_type과 object_type를 제외시킨다.
+        features_2 = copy.deepcopy(features)
+        for i in range(len(features_2)):
+            del features_2[i]['source']
+            
+        batch = super().__call__(features_2)
+        
+        # model의 forward 에는 들어가야 하므로, 다시 복원.
+        batch['source'] = [feature['source'] for feature in features]
+        return batch

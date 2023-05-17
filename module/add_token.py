@@ -10,6 +10,7 @@ def add_token(tokenizer, model_type):
    
     elif model_type == 'entity_punct' or model_type == 'new_entity_punct':
         tokenizer.add_tokens(['§'])
+        tokenizer.add_special_tokens({"additional_special_tokens":['[wikipedia]', '[wikitree]', '[policy_briefing]']})
     
     return tokenizer
 

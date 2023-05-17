@@ -163,15 +163,15 @@ def train():
       data_collator = CustomDataCollator(tokenizer)
 
     elif CFG['MODEL_TYPE'] == 'entity_punct' or CFG['MODEL_TYPE'] == 'new_entity_punct':
-      tokenized_train = punct_tokenized_dataset(train_dataset, tokenizer)
-      tokenized_dev = punct_tokenized_dataset(dev_dataset, tokenizer)
+      tokenized_train, source_train = punct_tokenized_dataset(train_dataset, tokenizer)
+      tokenized_dev, source_dev = punct_tokenized_dataset(dev_dataset, tokenizer)
 
-      RE_train_dataset = RE_Dataset(tokenized_train, train_label)
-      RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
+      RE_train_dataset = RE_source_Dataset(tokenized_train, train_label, source_train)
+      RE_dev_dataset = RE_source_Dataset(tokenized_dev, dev_label, source_dev)
 
       model = SepecialPunctBERT(MODEL_NAME, config=model_config, tokenizer=tokenizer)
 
-      data_collator = DataCollatorWithPadding(tokenizer)
+      data_collator = Source_CustomDataCollator(tokenizer)
 
     elif CFG['MODEL_TYPE'] =='cls_entity_special' :
       '''해야할 것 : tokenizer에 specail token 추가하기. soure를 special 토큰으로 넣기'''
@@ -226,7 +226,7 @@ def train():
       eval_steps=CFG['EVAL_STEP'],            # evaluation step.
       load_best_model_at_end=True,
       report_to="wandb",
-      metric_for_best_model='micro f1 score'
+      metric_for_best_model='loss'
     )
     
   else:
@@ -252,7 +252,7 @@ def train():
       eval_steps=CFG['EVAL_STEP'],           # evaluation step.
       load_best_model_at_end=True,
       report_to="wandb", 
-      metric_for_best_model='micro f1 score'
+      metric_for_best_model='loss'
     )
 
   # trainer = Trainer(

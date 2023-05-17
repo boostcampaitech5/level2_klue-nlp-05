@@ -20,6 +20,22 @@ class RE_Dataset(torch.utils.data.Dataset):
   def __len__(self):
     return len(self.labels)
   
+class RE_source_Dataset(torch.utils.data.Dataset):
+  """ Dataset 구성을 위한 class."""
+  def __init__(self, pair_dataset, labels, source):
+    self.pair_dataset = pair_dataset
+    self.labels = labels
+    self.source = source
+
+  def __getitem__(self, idx):
+    item = {key: val[idx].clone().detach() for key, val in self.pair_dataset.items()}
+    item['labels'] = torch.tensor(self.labels[idx])
+    item['source'] = self.source['source'].iloc[idx]
+    return item
+
+  def __len__(self):
+    return len(self.labels)
+  
 class RE_special_Dataset(torch.utils.data.Dataset):
   """ Dataset 구성을 위한 class."""
   def __init__(self, pair_dataset, labels, entity_type):
@@ -212,8 +228,9 @@ def cls_special_preprocessing_dataset(dataset) :
 
 def punct_preprocessing_dataset(dataset, discrip):
   sentences = []
+  sources = []
   
-  for sub_entity, obj_entity, sentence in zip(dataset['subject_entity'], dataset['object_entity'], dataset['sentence']):
+  for sub_entity, obj_entity, sentence, source in zip(dataset['subject_entity'], dataset['object_entity'], dataset['sentence'], dataset['source']):
     sub_entity = eval(sub_entity)
     obj_entity = eval(obj_entity)
     
@@ -224,11 +241,11 @@ def punct_preprocessing_dataset(dataset, discrip):
     if sub_idx[0] < obj_idx[0]:
       sentence = (sentence[:sub_idx[0]] + f'@ §{sub_type}§' + sub_word + '@'
                   + sentence[sub_idx[1]+1:obj_idx[0]] + f'# ^{obj_type}^' + obj_word
-                  + '#' + sentence[obj_idx[1]+1:])
+                  + '#' + sentence[obj_idx[1]+1:] + f' [{source}]')
     else:
       sentence = (sentence[:obj_idx[0]] + f'# ^{obj_type}^' + obj_word + '#'
                   + sentence[obj_idx[1]+1:sub_idx[0]] + f'@ §{sub_type}§' + sub_word
-                  + '@' + sentence[sub_idx[1]+1:])
+                  + '@' + sentence[sub_idx[1]+1:] + f' [{source}]')
       # ex) 〈Something〉는 @ § PER § 조지 해리슨 @이 쓰고 # ^ ORG ^ 비틀즈 #가 1969년 앨범 《Abbey Road》에 담은 노래다
     
     # 한자 -> 한글
@@ -238,15 +255,17 @@ def punct_preprocessing_dataset(dataset, discrip):
       sentence = add_discription(sentence, sub_word, obj_word, f" \'{obj_type}\' ")
       
     sentences.append(sentence)
+    sources.append(f'[{source}]')
   
-  out_dataset = pd.DataFrame({'id':dataset['id'], 'sentence':sentences, 'label':dataset['label'],})
+  out_dataset = pd.DataFrame({'id':dataset['id'], 'sentence':sentences, 'label':dataset['label'], 'source':sources})
   
   return out_dataset
 
 def new_punct_preprocessing_dataset(dataset, discrip):
   sentences = []
+  sources = []
   
-  for sub_entity, obj_entity, sentence in zip(dataset['subject_entity'], dataset['object_entity'], dataset['sentence']):
+  for sub_entity, obj_entity, sentence, source in zip(dataset['subject_entity'], dataset['object_entity'], dataset['sentence'], dataset['source']):
     sub_entity = eval(sub_entity)
     obj_entity = eval(obj_entity)
     
@@ -256,18 +275,19 @@ def new_punct_preprocessing_dataset(dataset, discrip):
     
     if sub_idx[0] < obj_idx[0]:
       sentence = (sentence[:sub_idx[0]] + f'@ § {sub_type_dict[sub_type]} §{sub_word}@' + sentence[sub_idx[1]+1:obj_idx[0]]
-                  + f'# ^ {obj_type_dict[obj_type]} ^{obj_word}#' + sentence[obj_idx[1]+1:])
+                  + f'# ^ {obj_type_dict[obj_type]} ^{obj_word}#' + sentence[obj_idx[1]+1:] + f' [{source}]')
     else:
-      sentence = (sentence[:obj_idx[0]] + f'# ^ {obj_type_dict[obj_type]} ^{obj_word}#' + sentence[obj_idx[1]+1:sub_idx[0]]
-                  + f'@ § {sub_type_dict[sub_type]} §{sub_word}@' + sentence[sub_idx[1]+1:])
+      sentence = (sentence[:obj_idx[0]] + f'@ ^ {obj_type_dict[obj_type]} ^{obj_word}@' + sentence[obj_idx[1]+1:sub_idx[0]]
+                  + f'# § {sub_type_dict[sub_type]} §{sub_word}#' + sentence[sub_idx[1]+1:] + f' [{source}]')
     # "영화 '기생충'이 제92회 아카데미 시상식에서 4관왕의 영광을 안은 가운데, 한국계 # ^ 장소 ^ '캐나다' # 배우 @ § 인물 § '산드라 오' @가 '기생충' 수상에 보인 반응이 화제다."
     
     if discrip:
       sentence = add_discription(sentence, sub_word, obj_word, f" \'{obj_type}\' ")
       
     sentences.append(sentence)
+    sources.append(f'[{source}]')
   
-  out_dataset = pd.DataFrame({'id':dataset['id'], 'sentence':sentences, 'label':dataset['label'],})
+  out_dataset = pd.DataFrame({'id':dataset['id'], 'sentence':sentences, 'label':dataset['label'], 'source':sources})
   
   return out_dataset  
 
@@ -325,10 +345,10 @@ def punct_tokenized_dataset(dataset, tokenizer):
     return_tensors="pt",
     padding=True,
     truncation=True,
-    max_length=256,
+    max_length=512,
     add_special_tokens=True,
     )
-  return tokenized_sentences
+  return tokenized_sentences, dataset[['source']]
 
 def sequentialdoublebert_tokenized_dataset(dataset, tokenizer, model_type):
   if model_type == 'base':
