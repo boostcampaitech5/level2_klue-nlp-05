@@ -113,6 +113,12 @@ def add_discription(sentence, sub_word, obj_word, obj_type):
   sentence = sentence + ':' + discription
   
   return sentence
+
+def add_discription_ver2(sentence, subj_word, obj_word, subj_type, obj_type) :
+  discription = f"이 문장에서 {subj_word}는 {subj_type}이고 {obj_word}는 {obj_type}이다."
+  sentence = sentence + ":" + discription
+
+  return sentence
   
 def preprocessing_dataset(dataset, discrip):
   """ 처음 불러온 csv 파일을 원하는 형태의 DataFrame으로 변경 시켜줍니다."""
@@ -135,7 +141,7 @@ def preprocessing_dataset(dataset, discrip):
     subject_words.append(sub_word)
     object_words.append(obj_word)
     
-    if discrip:
+    if discrip == 1:
       sentence = add_discription(sentence, sub_word, obj_word, eval(obj_entity)['type'])
     sentences.append(sentence)
     
@@ -175,7 +181,7 @@ def special_preprocessing_dataset(dataset, discrip):
     # 한자 -> 한글
     # sentence = hanja.translate(sentence, 'substitution')
     
-    if discrip:
+    if discrip == 1:
       sentence = add_discription(sentence, sub_word, obj_word, f" \'{obj_type}\' ")
       
     sentences.append(sentence)
@@ -234,7 +240,7 @@ def punct_preprocessing_dataset(dataset, discrip):
     # 한자 -> 한글
     # sentence = hanja.translate(sentence, 'substitution')
     
-    if discrip:
+    if discrip == 1:
       sentence = add_discription(sentence, sub_word, obj_word, f" \'{obj_type}\' ")
       
     sentences.append(sentence)
@@ -262,7 +268,7 @@ def new_punct_preprocessing_dataset(dataset, discrip):
                   + f'@ § {sub_type_dict[sub_type]} §{sub_word}@' + sentence[sub_idx[1]+1:])
     # "영화 '기생충'이 제92회 아카데미 시상식에서 4관왕의 영광을 안은 가운데, 한국계 # ^ 장소 ^ '캐나다' # 배우 @ § 인물 § '산드라 오' @가 '기생충' 수상에 보인 반응이 화제다."
     
-    if discrip:
+    if discrip == 1:
       sentence = add_discription(sentence, sub_word, obj_word, f" \'{obj_type}\' ")
       
     sentences.append(sentence)
@@ -295,9 +301,11 @@ def new_special_preprocessing_dataset(dataset,discrip) :
       sentence = (sentence[:start_obj] + "[OBJ] " + obj_type_dict[obj_word]
       + sentence[start_obj:start_subj] + "[SUBJ] " + obj_type_dict[subj_word] + sentence[start_subj:])
     
-    if discrip:
+    if discrip == 1:
       sentence = add_discription(sentence, subj_real_word, obj_real_word, f" \'{obj_word}\' ")
-      
+    
+    elif discrip == 2 :
+      sentence = add_discription_ver2(sentence, subj_real_word, obj_real_word, f"\'{subj_word}\'", f"\'{obj_word}\'")
 
     sentences.append(sentence)
   
