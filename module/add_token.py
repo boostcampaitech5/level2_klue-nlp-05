@@ -8,7 +8,7 @@ def add_token(tokenizer, model_type):
         num_new_tokens = tokenizer.add_special_tokens({"additional_special_tokens":['[SS]', '[SE]', '[OS]', '[OE]']})
         '''
    
-    elif model_type == 'entity_punct':
+    elif model_type == 'entity_punct' or model_type == 'new_entity_punct':
         tokenizer.add_tokens(['§'])
     
     return tokenizer
