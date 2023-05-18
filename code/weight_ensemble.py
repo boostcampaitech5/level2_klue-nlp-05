@@ -9,6 +9,7 @@ def elementwise_multiplication(lst, n):
 
 def main(path, weights):
     csvs = os.listdir(path)
+    csvs.sort()
     dfs = []
     for csv in csvs:
         dfs.append(pd.read_csv(path+f"/{csv}.csv"))
