@@ -45,5 +45,28 @@ def main():
         # save
         output.to_csv(path+"/ensemble_output.csv", index=False)
 
+    elif CFG['SEED']:
+        path = '/opt/ml/prediction/seed_csv'
+        seed_dfs = []
+        for seed_n in range(CFG["SEED_N"]):
+            seed_dfs.append(pd.read_csv(path+f"/seed{seed_n+1}.csv"))
+        probs = [[0.0]*30 for _ in range(len(seed_dfs[0]))]
+
+        for seed_n in range(len(seed_dfs)):
+            for id in range(len(seed_dfs[0])):
+                prob = str_to_lst(seed_dfs[seed_n].loc[id,"probs"])
+                probs[id] = elementwise_sum(probs[id], prob)
+        
+        # normalize
+        output_prob = [elementwise_divide(prob, CFG["SEED_N"]) for prob in probs]
+
+        # output
+        test_id = seed_dfs[0]["id"]
+        pred_answer = num_to_label([np.argmax(np.array(prob)) for prob in output_prob])
+        output = pd.DataFrame({'id':test_id,'pred_label':pred_answer,'probs':output_prob,})
+        
+        # save
+        output.to_csv(path+"/ensemble_output.csv", index=False)
+
 if __name__ == "__main__":
     main()

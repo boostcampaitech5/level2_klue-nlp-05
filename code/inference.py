@@ -206,6 +206,14 @@ def main(cnt = None):
     path_name = '/opt/ml/prediction/fold_csv'
     file_name = f'/fold{cnt}.csv'
     output.to_csv(path_name + file_name, index=False)
+  elif(CFG['SEED']):
+    path_name = '/opt/ml/prediction/seed_csv'
+    file_name = f'/seed{cnt}.csv'
+    output.to_csv(path_name + file_name, index=False)
+  elif(CFG['SEED_FOLD']):
+    path_name = '/opt/ml/prediction/seed_fold_csv'
+    file_name = f'/seed_fold{cnt}.csv'
+    output.to_csv(path_name + file_name, index=False)
   else:  
     output.to_csv('/opt/ml/prediction/submission.csv', index=False) # 최종적으로 완성된 예측한 라벨 csv 파일 형태로 저장.
   #### 필수!! ##############################################
