@@ -212,5 +212,5 @@ def main(cnt = None):
   print('---- Finish! ----')
 
 if __name__ == '__main__':
-  seed_everything()
+  seed_everything(3)
   main()

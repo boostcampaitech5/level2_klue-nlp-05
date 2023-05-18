@@ -275,5 +275,5 @@ def main():
 
 if __name__ == '__main__':
   # Seed 고정
-  seed_everything()
+  seed_everything(3)
   main()

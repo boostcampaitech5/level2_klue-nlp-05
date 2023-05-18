@@ -12,7 +12,7 @@ class Fold:
         # prepare cross validation
         self.CFG = CFG
         self.n_fold = self.CFG["FOLD_N"]
-        self.kf = StratifiedKFold(n_splits=self.n_fold, random_state=14, shuffle=True)
+        self.kf = StratifiedKFold(n_splits=self.n_fold, random_state=3, shuffle=True)
         self.train_data = pd.DataFrame(pd.read_csv(CFG["TRAIN_PATH"]))
         self.label = self.train_data['label']
         
@@ -49,5 +49,5 @@ def main():
     
     
 if __name__ == "__main__":     
-    seed_everything()
+    seed_everything(3)
     main()
