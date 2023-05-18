@@ -8,6 +8,9 @@ FOLD_TRAIN_PATH: "/opt/ml/dataset/fold_dataset/fold_train.csv"
 FOLD_DEV_PATH: "/opt/ml/dataset/fold_dataset/fold_dev.csv"
 SEED_TRAIN_PATH: "/opt/ml/dataset/seed_dataset/seed_train.csv"
 SEED_DEV_PATH: "/opt/ml/dataset/seed_dataset/seed_dev.csv"
+SEED_FOLD_TRAIN_PATH: "/opt/ml/dataset/seed_fold_dataset/seed_fold_train.csv"
+SEED_FOLD_DEV_PATH: "/opt/ml/dataset/seed_fold_dataset/seed_fold_dev.csv"
+
 OUTPUT_DIR: "./results"
 LOGGING_DIR: "./logs"
 MODEL_SAVE_DIR: "/opt/ml/best_model"
@@ -29,13 +32,13 @@ RATIO: 0.15 # Train Validation Split ratio
 WEIGHT_DECAY: 0.1
 
 # LOG
-SAVING_STEP: 500
-LOGGING_STEP: 500
-EVAL_STEP: 500
+SAVING_STEP: 400
+LOGGING_STEP: 400
+EVAL_STEP: 400
 STRATEGY: "steps" ### 추가부분
 
 # WANDB (확인 필수)
-WANDB_PROJECT: "seed_ensemble"
+WANDB_PROJECT: "seed_fold"
 WANDB_NAME: "roberta-large_epoch3_batch32_entity-punct_discrip"
 
 # WANDB SWEEP (확인 필수 및 양식 확인(들여쓰기))
@@ -65,10 +68,12 @@ SWEEP_CONFIGURATION: # SWEEP 세부 내용 설정
 
 #Ensemble
 FOLD: 0 # [0, 1]
-FOLD_N: 2 #integer : 몇개 폴드할건지
+FOLD_N: 5 #integer : 몇개 폴드할건지
 
-SEED: 1 # [0, 1] seed ensemble 할건지 말건지. 위 FOLD와 다른 값을 가져야함
-SEED_N: 5 #integer : 몇개 시드 사용할건지
+SEED: 0 # [0, 1] seed ensemble 할건지 말건지. 위 FOLD와 다른 값을 가져야함
+SEED_N: 2 #integer : 몇개 시드 사용할건지
+
+SEED_FOLD: 1 # [0, 1] FOLD,SEED와 다른 값 가져야함
 
 # Custom Model (확인 필수)
 MODEL_TYPE: 'entity_punct' # 'base', 'entity_special', 'entity_punct', 'cls_entity_special', 'sangmin_entity_special'

@@ -110,6 +110,10 @@ def train():
   if CFG['SEED']:
     train_dataset = load_data(CFG['SEED_TRAIN_PATH'], CFG['MODEL_TYPE'], CFG['DISCRIP'], CFG['DO_SEQUENTIALBERTMODEL'])
     dev_dataset = load_data(CFG['SEED_DEV_PATH'], CFG['MODEL_TYPE'], CFG['DISCRIP'], CFG['DO_SEQUENTIALBERTMODEL'])
+  
+  if CFG['SEED_FOLD']:
+    train_dataset = load_data(CFG['SEED_FOLD_TRAIN_PATH'], CFG['MODEL_TYPE'], CFG['DISCRIP'], CFG['DO_SEQUENTIALBERTMODEL'])
+    dev_dataset = load_data(CFG['SEED_FOLD_DEV_PATH'], CFG['MODEL_TYPE'], CFG['DISCRIP'], CFG['DO_SEQUENTIALBERTMODEL'])
 
   elif CFG['RATIO'] == 0.0:
     train_val_split(0.1)
