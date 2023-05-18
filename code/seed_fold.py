@@ -22,7 +22,10 @@ class SeedFold:
             seed_everything(seed)
             kf = StratifiedKFold(n_splits=self.n_fold, random_state=seed, shuffle=True)
             for train_index, dev_index in kf.split(self.train_data, self.label):
-
+                if cnt <= 3:
+                     cnt += 1
+                     continue
+                print(cnt)
                 # splitting Dataframe (dataset not included)
                 train_df = self.train_data.iloc[train_index]
                 train_df.to_csv(self.CFG["SEED_FOLD_TRAIN_PATH"])
@@ -41,11 +44,10 @@ class SeedFold:
     def __repr__():
                 print("=========== SEED_FOLD FINISHED ===========")
 
-
 def main():
     with open("/opt/ml/module/config.yaml") as f:
         CFG = yaml.safe_load(f)
-    seeds = [77, 72]
+    seeds = [777]
     seed_fold = SeedFold(CFG, seeds)
     seed_fold.fold()
     print(seed_fold)
