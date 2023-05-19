@@ -113,6 +113,12 @@ def add_discription(sentence, sub_word, obj_word, obj_type):
   sentence = sentence + ':' + discription
   
   return sentence
+
+def add_discription_ver2(sentence, subj_word, obj_word, subj_type, obj_type) :
+  discription = f" 이 문장에서 {subj_word}는 {subj_type}이고 {obj_word}는 {obj_type}이다."
+  sentence = sentence + ":" + discription
+
+  return sentence
   
 def preprocessing_dataset(dataset, discrip):
   """ 처음 불러온 csv 파일을 원하는 형태의 DataFrame으로 변경 시켜줍니다."""
@@ -135,7 +141,7 @@ def preprocessing_dataset(dataset, discrip):
     subject_words.append(sub_word)
     object_words.append(obj_word)
     
-    if discrip:
+    if discrip == 1:
       sentence = add_discription(sentence, sub_word, obj_word, eval(obj_entity)['type'])
     sentences.append(sentence)
     
@@ -175,7 +181,7 @@ def special_preprocessing_dataset(dataset, discrip):
     # 한자 -> 한글
     # sentence = hanja.translate(sentence, 'substitution')
     
-    if discrip:
+    if discrip == 1:
       sentence = add_discription(sentence, sub_word, obj_word, f" \'{obj_type}\' ")
       
     sentences.append(sentence)
@@ -234,7 +240,7 @@ def punct_preprocessing_dataset(dataset, discrip):
     # 한자 -> 한글
     # sentence = hanja.translate(sentence, 'substitution')
     
-    if discrip:
+    if discrip == 1:
       sentence = add_discription(sentence, sub_word, obj_word, f" \'{obj_type}\' ")
       
     sentences.append(sentence)
@@ -262,7 +268,7 @@ def new_punct_preprocessing_dataset(dataset, discrip):
                   + f'@ § {sub_type_dict[sub_type]} §{sub_word}@' + sentence[sub_idx[1]+1:])
     # "영화 '기생충'이 제92회 아카데미 시상식에서 4관왕의 영광을 안은 가운데, 한국계 # ^ 장소 ^ '캐나다' # 배우 @ § 인물 § '산드라 오' @가 '기생충' 수상에 보인 반응이 화제다."
     
-    if discrip:
+    if discrip == 1:
       sentence = add_discription(sentence, sub_word, obj_word, f" \'{obj_type}\' ")
       
     sentences.append(sentence)
@@ -270,6 +276,42 @@ def new_punct_preprocessing_dataset(dataset, discrip):
   out_dataset = pd.DataFrame({'id':dataset['id'], 'sentence':sentences, 'label':dataset['label'],})
   
   return out_dataset  
+
+def new_special_preprocessing_dataset(dataset,discrip) :
+  sentences = []
+  subject_type = []
+  object_type = []
+
+  for subj_entity, obj_entity, sentence in zip(dataset['subject_entity'], dataset['object_entity'], dataset['sentence']):
+    subj_entity = eval(subj_entity)
+    obj_entity = eval(obj_entity)
+    start_subj = subj_entity['start_idx']
+    start_obj = obj_entity['start_idx']
+    subj_word = subj_entity['type']
+    obj_word = obj_entity['type']
+    subj_real_word = subj_entity['word']
+    obj_real_word = obj_entity['word']
+    subject_type.append(subj_word)
+    object_type.append(obj_word)
+    if start_subj < start_obj :
+      sentence = (sentence[:start_subj] + "[SUBJ] " + obj_type_dict[subj_word] + " "
+      + sentence[start_subj:start_obj] + "[OBJ] " + obj_type_dict[obj_word] + " " + sentence[start_obj:])
+
+    else :
+      sentence = (sentence[:start_obj] + "[OBJ] " + obj_type_dict[obj_word] + " "
+      + sentence[start_obj:start_subj] + "[SUBJ] " + obj_type_dict[subj_word] + " " + sentence[start_subj:])
+    
+    if discrip == 1:
+      sentence = add_discription(sentence, subj_real_word, obj_real_word, f" \'{obj_word}\' ")
+    
+    elif discrip == 2 :
+      sentence = add_discription_ver2(sentence, subj_real_word, obj_real_word, f"\'{obj_type_dict[subj_word]}\'", f"\'{obj_type_dict[obj_word]}\'")
+
+    sentences.append(sentence)
+  
+  output_dataset = pd.DataFrame({'id':dataset['id'], 'sentence':sentences, 'label':dataset['label'], 'subject_type':subject_type, 'object_type':object_type})
+  
+  return output_dataset
 
 def load_data(dataset_dir, model_type, discrip, do_sequentialdoublebert=0):
   """ csv 파일을 경로에 맡게 불러 옵니다. """
@@ -285,6 +327,8 @@ def load_data(dataset_dir, model_type, discrip, do_sequentialdoublebert=0):
     dataset = new_punct_preprocessing_dataset(pd_dataset, discrip)
   elif model_type == 'cls_entity_special' or model_type == "sangmin_entity_special":
     dataset = cls_special_preprocessing_dataset(pd_dataset)
+  elif model_type == 'new_entity_special' :
+    dataset = new_special_preprocessing_dataset(pd_dataset,discrip)
   else:
     dataset = preprocessing_dataset(pd_dataset, discrip)
 

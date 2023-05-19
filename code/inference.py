@@ -40,7 +40,7 @@ def inference(model, tokenized_sent, device, model_type, do_sequentialdoublebert
             subject_words=data['subject_words'],
             object_words=data['object_words'],
             )
-      elif model_type == 'entity_special' or model_type == "cls_entity_special" or model_type == "sangmin_entity_special":
+      elif model_type == 'entity_special' or model_type == "cls_entity_special" or model_type == "sangmin_entity_special" or model_type == "new_entity_special":
           outputs = model(
             input_ids=data['input_ids'].to(device),
             attention_mask=data['attention_mask'].to(device),
@@ -115,12 +115,13 @@ def load_test_dataset(dataset_dir, tokenizer, model_type, discrip, do_sequential
       tokenized_test = punct_tokenized_dataset(test_dataset, tokenizer)
       return test_dataset['id'], tokenized_test, test_label
 
-    elif model_type == "cls_entity_special" :
-      test_dataset = load_data(dataset_dir, model_type)
+    elif model_type == "cls_entity_special" or model_type == "new_entity_special":
+      test_dataset = load_data(dataset_dir, model_type, discrip)
       test_label = list(map(int, test_dataset['label'].values))
       # tokenizing dataset
       tokenized_test, entity_type = special_tokenized_dataset(test_dataset, tokenizer)
       return test_dataset['id'], tokenized_test, test_label, entity_type
+
 
 def main(cnt = None):
   """
@@ -191,6 +192,18 @@ def main(cnt = None):
       test_id, test_dataset, test_label, entity_type = load_test_dataset(test_dataset_dir, tokenizer, CFG['MODEL_TYPE'], None)
       Re_test_dataset = RE_special_Dataset(test_dataset ,test_label, entity_type)
 
+    elif CFG["MODEL_TYPE"] == "new_entity_special" :
+      tokenizer = AutoTokenizer.from_pretrained(Tokenizer_NAME)
+      tokenizer = add_token_ver2(tokenizer)
+      model = New_SpecialEntityBERT(Tokenizer_NAME, model_config, tokenizer)
+
+      state_dict = torch.load(f"{MODEL_NAME}/pytorch_model.bin")
+      model.load_state_dict(state_dict)
+
+      test_id, test_dataset, test_label, entity_type = load_test_dataset(test_dataset_dir, tokenizer, CFG['MODEL_TYPE'], CFG["DISCRIP"])
+      Re_test_dataset = RE_special_Dataset(test_dataset ,test_label, entity_type)
+
+
   model.to(device)
 
   ## predict answer
@@ -215,7 +228,7 @@ def main(cnt = None):
     file_name = f'/seed_fold{cnt}.csv'
     output.to_csv(path_name + file_name, index=False)
   else:  
-    output.to_csv('/opt/ml/prediction/submission.csv', index=False) # 최종적으로 완성된 예측한 라벨 csv 파일 형태로 저장.
+    output.to_csv('/opt/ml/code/prediction/roberta-large_new-special_batch=32_epoch=3_lr=5e-5_dev=0.15_wd=0.1.csv', index=False) # 최종적으로 완성된 예측한 라벨 csv 파일 형태로 저장.
   #### 필수!! ##############################################
   print('---- Finish! ----')
 
