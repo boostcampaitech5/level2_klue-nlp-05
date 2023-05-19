@@ -2,12 +2,11 @@ import pickle as pickle
 import os
 import pandas as pd
 import torch
-# import hanja
 
 sub_type_dict = {'PER': '인물', 'ORG': '단체', 'LOC': '장소'}
 obj_type_dict = {'PER': '인물', 'ORG': '단체', 'POH': '명칭', 'DAT': '날짜', 'LOC': '장소', 'NOH': '수'}
-class RE_Dataset(torch.utils.data.Dataset):
-  """ Dataset 구성을 위한 class."""
+
+class REDataset(torch.utils.data.Dataset):
   def __init__(self, pair_dataset, labels):
     self.pair_dataset = pair_dataset
     self.labels = labels
@@ -20,8 +19,7 @@ class RE_Dataset(torch.utils.data.Dataset):
   def __len__(self):
     return len(self.labels)
   
-class RE_special_Dataset(torch.utils.data.Dataset):
-  """ Dataset 구성을 위한 class."""
+class RESpecialDataset(torch.utils.data.Dataset):
   def __init__(self, pair_dataset, labels, entity_type):
     self.pair_dataset = pair_dataset
     self.labels = labels
@@ -32,13 +30,12 @@ class RE_special_Dataset(torch.utils.data.Dataset):
     item['labels'] = torch.tensor(self.labels[idx])
     item['subject_type'] = self.entity_type['subject_type'].iloc[idx]
     item['object_type'] = self.entity_type['object_type'].iloc[idx]
-    
     return item
 
   def __len__(self):
     return len(self.labels)
 
-class RE_sequential_doublebert_Dataset(torch.utils.data.Dataset):
+class RESequentialDoubleBERTDataset(torch.utils.data.Dataset):
   def __init__(self, pair_dataset, labels, entity_type, entity_words):
     self.pair_dataset = pair_dataset
     self.labels = labels
@@ -52,7 +49,6 @@ class RE_sequential_doublebert_Dataset(torch.utils.data.Dataset):
     item['object_type'] = self.entity_type['object_type'].iloc[idx]
     item['subject_words'] = self.entity_words['subject_words'].iloc[idx]
     item['object_words'] = self.entity_words['object_words'].iloc[idx]
-
     return item
 
   def __len__(self):
@@ -108,20 +104,18 @@ def sequentialdoublebert_preprocessing_dataset(dataset, model_type):
 
   return out_dataset
 
-def add_discription(sentence, sub_word, obj_word, obj_type):
-  discription = f"이 문장에서{obj_word}는{sub_word}의{obj_type}이다." # 자체에 앞 뒤 띄어쓰기와 '있음.
-  sentence = sentence + ':' + discription
+def add_discription(sentence, sub_word, obj_word, sub_type, obj_type, do_discrip=0):
+  if do_discrip == 1:
+    discription = f"이 문장에서{obj_word}는{sub_word}의{obj_type}이다."
+    sentence += ':' + discription
   
-  return sentence
-
-def add_discription_ver2(sentence, subj_word, obj_word, subj_type, obj_type) :
-  discription = f" 이 문장에서 {subj_word}는 {subj_type}이고 {obj_word}는 {obj_type}이다."
-  sentence = sentence + ":" + discription
-
+  elif do_discrip == 2:
+    discription = f" 이 문장에서 {sub_word}는 {sub_type}이고 {obj_word}는 {obj_type}이다."
+    sentence += ":" + discription
+   
   return sentence
   
 def preprocessing_dataset(dataset, discrip):
-  """ 처음 불러온 csv 파일을 원하는 형태의 DataFrame으로 변경 시켜줍니다."""
   sentences = []
   subject_words = []
   object_words = []
@@ -132,20 +126,16 @@ def preprocessing_dataset(dataset, discrip):
     obj_word = eval(obj_entity)['word']
     sub_word = f' \'{sub_word}\' '
     obj_word = f' \'{obj_word}\' '
-
-    # 한자 -> 한글
-    # sub_word = hanja.translate(sub_word, 'substitution')
-    # obj_word = hanja.translate(obj_word, 'substitution')
-    # sentence = hanja.translate(sentence, 'substitution')
     
     subject_words.append(sub_word)
     object_words.append(obj_word)
     
-    if discrip == 1:
-      sentence = add_discription(sentence, sub_word, obj_word, eval(obj_entity)['type'])
+    sentence = add_discription(sentence, sub_word, obj_word, eval(sub_entity)['type'], eval(obj_entity)['type'], discrip)
+      
     sentences.append(sentence)
     
   out_dataset = pd.DataFrame({'id':dataset['id'], 'sentence':sentences, 'subject_entity':subject_words, 'object_entity':object_words, 'label':dataset['label'],})
+  
   return out_dataset
 
 def special_preprocessing_dataset(dataset, discrip):
@@ -165,9 +155,6 @@ def special_preprocessing_dataset(dataset, discrip):
     sub_start, sub_end = f'[S:{sub_type}]', f'[/S:{sub_type}]'
     obj_start, obj_end = f'[O:{obj_type}]', f'[/O:{obj_type}]'
     sub_word, obj_word = f" \'{sub_entity['word']}\' ", f" \'{obj_entity['word']}\' "
-    
-    #sub_start, sub_end, obj_start, obj_end = '[SS]', '[SE]', '[OS]', '[OE]'
-    
 
     if sub_idx[0] < obj_idx[0]:
       sentence = (sentence[:sub_idx[0]] + sub_start + sub_word + sub_end 
@@ -178,11 +165,7 @@ def special_preprocessing_dataset(dataset, discrip):
                   + sentence[obj_idx[1]+1:sub_idx[0]] + sub_start + sub_word
                   + sub_end + sentence[sub_idx[1]+1:])
     
-    # 한자 -> 한글
-    # sentence = hanja.translate(sentence, 'substitution')
-    
-    if discrip == 1:
-      sentence = add_discription(sentence, sub_word, obj_word, f" \'{obj_type}\' ")
+    sentence = add_discription(sentence, sub_word, obj_word, f" \'{sub_type}\' ", f" \'{obj_type}\' ", discrip)
       
     sentences.append(sentence)
 
@@ -190,8 +173,7 @@ def special_preprocessing_dataset(dataset, discrip):
   
   return out_dataset 
 
-def cls_special_preprocessing_dataset(dataset) :
-  '''목표 : input의 sentence의 형태를 바꿔주어야한다.'''
+def cls_special_preprocessing_dataset(dataset):
   sentences = []
   subject_type = []
   object_type = []
@@ -211,9 +193,11 @@ def cls_special_preprocessing_dataset(dataset) :
     else:
       sentence = (sentence[:obj_idx] + '[OBJ]' + obj_type + sentence[obj_idx:subj_idx] + '[SUBJ]'
                   + subj_type + sentence[subj_idx:])
+      
     sentences.append(sentence)
 
   output_dataset = pd.DataFrame({'id':dataset['id'], 'sentence':sentences, 'label':dataset['label'], 'subject_type':subject_type, 'object_type':object_type})
+  
   return output_dataset
 
 def punct_preprocessing_dataset(dataset, discrip):
@@ -237,11 +221,7 @@ def punct_preprocessing_dataset(dataset, discrip):
                   + '@' + sentence[sub_idx[1]+1:])
       # ex) 〈Something〉는 @ § PER § 조지 해리슨 @이 쓰고 # ^ ORG ^ 비틀즈 #가 1969년 앨범 《Abbey Road》에 담은 노래다
     
-    # 한자 -> 한글
-    # sentence = hanja.translate(sentence, 'substitution')
-    
-    if discrip == 1:
-      sentence = add_discription(sentence, sub_word, obj_word, f" \'{obj_type}\' ")
+    sentence = add_discription(sentence, sub_word, obj_word, f" \'{sub_type}\' ", f" \'{obj_type}\' ", discrip)
       
     sentences.append(sentence)
   
@@ -249,7 +229,7 @@ def punct_preprocessing_dataset(dataset, discrip):
   
   return out_dataset
 
-def new_punct_preprocessing_dataset(dataset, discrip):
+def ko_punct_preprocessing_dataset(dataset, discrip):
   sentences = []
   
   for sub_entity, obj_entity, sentence in zip(dataset['subject_entity'], dataset['object_entity'], dataset['sentence']):
@@ -266,10 +246,8 @@ def new_punct_preprocessing_dataset(dataset, discrip):
     else:
       sentence = (sentence[:obj_idx[0]] + f'# ^ {obj_type_dict[obj_type]} ^{obj_word}#' + sentence[obj_idx[1]+1:sub_idx[0]]
                   + f'@ § {sub_type_dict[sub_type]} §{sub_word}@' + sentence[sub_idx[1]+1:])
-    # "영화 '기생충'이 제92회 아카데미 시상식에서 4관왕의 영광을 안은 가운데, 한국계 # ^ 장소 ^ '캐나다' # 배우 @ § 인물 § '산드라 오' @가 '기생충' 수상에 보인 반응이 화제다."
-    
-    if discrip == 1:
-      sentence = add_discription(sentence, sub_word, obj_word, f" \'{obj_type}\' ")
+
+    sentence = add_discription(sentence, sub_word, obj_word, f" \'{obj_type}\' ", f" \'{obj_type}\' ", discrip)
       
     sentences.append(sentence)
   
@@ -277,35 +255,34 @@ def new_punct_preprocessing_dataset(dataset, discrip):
   
   return out_dataset  
 
-def new_special_preprocessing_dataset(dataset,discrip) :
+def ko_special_preprocessing_dataset(dataset,discrip):
   sentences = []
   subject_type = []
   object_type = []
 
-  for subj_entity, obj_entity, sentence in zip(dataset['subject_entity'], dataset['object_entity'], dataset['sentence']):
-    subj_entity = eval(subj_entity)
+  for sub_entity, obj_entity, sentence in zip(dataset['subject_entity'], dataset['object_entity'], dataset['sentence']):
+    sub_entity = eval(sub_entity)
     obj_entity = eval(obj_entity)
-    start_subj = subj_entity['start_idx']
+
+    start_subj = sub_entity['start_idx']
     start_obj = obj_entity['start_idx']
-    subj_word = subj_entity['type']
+    sub_word = sub_entity['type']
     obj_word = obj_entity['type']
-    subj_real_word = subj_entity['word']
+    sub_real_word = sub_entity['word']
     obj_real_word = obj_entity['word']
-    subject_type.append(subj_word)
+
+    subject_type.append(sub_word)
     object_type.append(obj_word)
-    if start_subj < start_obj :
-      sentence = (sentence[:start_subj] + "[SUBJ] " + obj_type_dict[subj_word] + " "
+
+    if start_subj < start_obj:
+      sentence = (sentence[:start_subj] + "[SUBJ] " + obj_type_dict[sub_word] + " "
       + sentence[start_subj:start_obj] + "[OBJ] " + obj_type_dict[obj_word] + " " + sentence[start_obj:])
 
-    else :
+    else:
       sentence = (sentence[:start_obj] + "[OBJ] " + obj_type_dict[obj_word] + " "
-      + sentence[start_obj:start_subj] + "[SUBJ] " + obj_type_dict[subj_word] + " " + sentence[start_subj:])
+      + sentence[start_obj:start_subj] + "[SUBJ] " + obj_type_dict[sub_word] + " " + sentence[start_subj:])
     
-    if discrip == 1:
-      sentence = add_discription(sentence, subj_real_word, obj_real_word, f" \'{obj_word}\' ")
-    
-    elif discrip == 2 :
-      sentence = add_discription_ver2(sentence, subj_real_word, obj_real_word, f"\'{obj_type_dict[subj_word]}\'", f"\'{obj_type_dict[obj_word]}\'")
+    sentence = add_discription(sentence, sub_real_word, obj_real_word, f" \'{sub_word}\' ", f" \'{obj_word}\' ", discrip)
 
     sentences.append(sentence)
   
@@ -314,7 +291,6 @@ def new_special_preprocessing_dataset(dataset,discrip) :
   return output_dataset
 
 def load_data(dataset_dir, model_type, discrip, do_sequentialdoublebert=0):
-  """ csv 파일을 경로에 맡게 불러 옵니다. """
   pd_dataset = pd.read_csv(dataset_dir)
   
   if do_sequentialdoublebert:
@@ -323,24 +299,24 @@ def load_data(dataset_dir, model_type, discrip, do_sequentialdoublebert=0):
     dataset = special_preprocessing_dataset(pd_dataset, discrip)
   elif model_type == 'entity_punct':
     dataset = punct_preprocessing_dataset(pd_dataset, discrip)
-  elif model_type == 'new_entity_punct':
-    dataset = new_punct_preprocessing_dataset(pd_dataset, discrip)
-  elif model_type == 'cls_entity_special' or model_type == "sangmin_entity_special":
+  elif model_type == 'ko_entity_punct':
+    dataset = ko_punct_preprocessing_dataset(pd_dataset, discrip)
+  elif model_type == 'cls_entity_special' or model_type == "no_cls_entity_special":
     dataset = cls_special_preprocessing_dataset(pd_dataset)
-  elif model_type == 'new_entity_special' :
-    dataset = new_special_preprocessing_dataset(pd_dataset,discrip)
+  elif model_type == 'ko_entity_special':
+    dataset = ko_special_preprocessing_dataset(pd_dataset, discrip)
   else:
     dataset = preprocessing_dataset(pd_dataset, discrip)
 
   return dataset
 
 def tokenized_dataset(dataset, tokenizer):
-  """ tokenizer에 따라 sentence를 tokenizing 합니다."""
   concat_entity = []
   for e01, e02 in zip(dataset['subject_entity'], dataset['object_entity']):
     temp = ''
     temp = e01 + '[SEP]' + e02
     concat_entity.append(temp)
+  
   tokenized_sentences = tokenizer(
       concat_entity,
       list(dataset['sentence']),
@@ -348,8 +324,8 @@ def tokenized_dataset(dataset, tokenizer):
       padding=True,
       truncation=True,
       max_length=256,
-      add_special_tokens=True,
-      )
+      add_special_tokens=True)
+  
   return tokenized_sentences
 
 def special_tokenized_dataset(dataset, tokenizer):
@@ -359,8 +335,8 @@ def special_tokenized_dataset(dataset, tokenizer):
     padding=True,
     truncation=True,
     max_length=256,
-    add_special_tokens=True,
-    )
+    add_special_tokens=True)
+  
   return tokenized_sentences, dataset[['subject_type', 'object_type']]
 
 def punct_tokenized_dataset(dataset, tokenizer):
@@ -370,8 +346,8 @@ def punct_tokenized_dataset(dataset, tokenizer):
     padding=True,
     truncation=True,
     max_length=256,
-    add_special_tokens=True,
-    )
+    add_special_tokens=True)
+  
   return tokenized_sentences
 
 def sequentialdoublebert_tokenized_dataset(dataset, tokenizer, model_type):
@@ -381,6 +357,7 @@ def sequentialdoublebert_tokenized_dataset(dataset, tokenizer, model_type):
       temp = ''
       temp = e01 + '[SEP]' + e02
       concat_entity.append(temp)
+    
     tokenized_sentences = tokenizer(
       concat_entity,
       list(dataset['sentence']),
@@ -388,8 +365,8 @@ def sequentialdoublebert_tokenized_dataset(dataset, tokenizer, model_type):
       padding=True,
       truncation=True,
       max_length=256,
-      add_special_tokens=True,
-    )
+      add_special_tokens=True)
+    
   else:
     tokenized_sentences = tokenizer(
       list(dataset['sentence']),
@@ -397,7 +374,6 @@ def sequentialdoublebert_tokenized_dataset(dataset, tokenizer, model_type):
       padding=True,
       truncation=True,
       max_length=256,
-      add_special_tokens=True,
-    )
+      add_special_tokens=True)
 
   return tokenized_sentences, dataset[['subject_type', 'object_type']], dataset[['subject_words', 'object_words']]
