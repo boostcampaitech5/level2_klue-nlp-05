@@ -7,4 +7,7 @@
 !module/*
 !prediction/fold_csv/
 !prediction/fold_csv/*
+!utils/
+!train.py
+!inference.py
 module/mlm_dataset.py
