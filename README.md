@@ -1,14 +1,12 @@
 # level2_klue-nlp-05
 
 ## 🐴Members
----
 
 |<img src='https://avatars.githubusercontent.com/u/102334596?v=4' height=100 width=100px></img>|<img src='https://avatars.githubusercontent.com/u/86002769?v=4' height=100 width=100px></img>|<img src='https://avatars.githubusercontent.com/u/88221233?v=4' height=100 width=100px></img>|<img src='https://avatars.githubusercontent.com/u/107304584?v=' height=100 width=100px></img>|<img src='https://avatars.githubusercontent.com/u/60664644?v=4' height=100 width=100px></img>|<img src='https://avatars.githubusercontent.com/u/126854237?v=4' height=100 width=100px></img>
 | --- | --- | --- | --- | --- | --- |
 | [변성훈](https://github.com/DNA-B) | [서보성](https://github.com/Seoboseong) | [이도현](https://github.com/aiclaudev) | [이상민](https://github.com/SangMini2) | [이승우](https://github.com/OLAOOT) | [이예원](https://github.com/aeongaewon) |
 
 ## 📎RE (Relation Extraction)
----
 
 > 부스트 캠프 AI-Tech 5기 NLP 트랙 Level2 1차 경진대회 프로젝트입니다. 관계 추출(Relation Extraction)은 문장이나 텍스트에서 두 개체(대상) 사이의 관계를 식별하고 분류하는 작업입니다. RE 작업은 정보 검색 및 추출, 지식 그래프 구축 등 다양한 응용 분야에서 중요하게 활용됩니다. 프로젝트의 목표는 문장과 문장의 두 개체가 주어졌을 때, 이 두 개체 사이의 관계를 자동으로 추출하도록 하는 것입니다.
 > 
@@ -25,7 +23,6 @@
 - Micro F1, AUPRC
   
 ## ✔️Project
----
 
 ### Structure
 
@@ -92,7 +89,7 @@ root/
 - Soft Voting Ensemble
 
 ## 🐞Usage
----
+
 ```python
 # TRAIN
 python3 code/train.py
@@ -102,7 +99,7 @@ python3 code/inference.py
 ```
 
 ## 🏆Result
----
+
 - Public 1위
 
 ![Public](https://github.com/boostcampaitech5/level2_klue-nlp-05/assets/60664644/2876a419-77a9-491f-ae91-cd555d1534a9)
