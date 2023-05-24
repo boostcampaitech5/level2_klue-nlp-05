@@ -56,7 +56,7 @@ root/
 
 💡 __*자세한 내용은 [Wrap-up Report](https://github.com/boostcampaitech5/level2_klue-nlp-05/blob/main/%5BNLP-05%5Dklue_wrapup_report.pdf)를 참고해주세요.*__
 
-## Preprocessing
+### Preprocessing
 
 - Data Augmentation
     - Duplicated data remove
@@ -73,7 +73,7 @@ root/
     - Description version 1
     - Description version 2
 
-## Modeling
+### Modeling
 
 - Focal loss
 - Label Smoothing
@@ -83,7 +83,7 @@ root/
     - working Sequentially
 - Entity Type Restriction
 
-## Ensemble
+### Ensemble
 
 - KFold → StratifiedKFold
 - Soft Voting Ensemble
@@ -102,8 +102,8 @@ python3 code/inference.py
 
 - Public 1위
 
-![Public](https://github.com/boostcampaitech5/level2_klue-nlp-05/assets/60664644/2876a419-77a9-491f-ae91-cd555d1534a9)
+![Public](https://github.com/boostcampaitech5/level2_klue-nlp-05/assets/60664644/3ec7b2df-3d85-4a62-abe3-661f220b0bec)
 
 - Private 2위
 
-![Private](https://github.com/boostcampaitech5/level2_klue-nlp-05/assets/60664644/376a95ad-27a0-4612-8cf1-47f0926f50d0)
+![Private](https://github.com/boostcampaitech5/level2_klue-nlp-05/assets/60664644/59376906-baf6-4146-b6d3-20f54c7f7806)
