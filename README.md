@@ -13,7 +13,7 @@
 
 ### Data (Private)
 
-- 총 데이터 개수: 40,235 문장 쌍
+- 총 데이터 개수: 40,235 문장
     - Train(학습) 데이터 개수: 32,470 (81%)
     - Test(평가) 데이터 개수: 7,765 (19%)
     - Label: 0 ~ 29 사이의 정수 ([KLUE](https://arxiv.org/pdf/2105.09680.pdf) RE)
@@ -54,8 +54,6 @@ root/
 
 ```
 
-💡 __*자세한 내용은 [Wrap-up Report](https://github.com/boostcampaitech5/level2_klue-nlp-05/blob/main/%5BNLP-05%5Dklue_wrapup_report.pdf)를 참고해주세요.*__
-
 ### Preprocessing
 
 - Data Augmentation
@@ -87,6 +85,9 @@ root/
 
 - KFold → StratifiedKFold
 - Soft Voting Ensemble
+
+
+💡 __*위에 관한 자세한 내용은 [Wrap-up Report](https://github.com/boostcampaitech5/level2_klue-nlp-05/blob/main/%5BNLP-05%5Dklue_wrapup_report.pdf)를 참고해주세요.*__
 
 ## 🐞Usage
 
